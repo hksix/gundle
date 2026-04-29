@@ -616,6 +616,28 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Loading state shown while guns.json is being fetched */
+  .loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  .loading-state .spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--rule);
+    border-top-color: var(--brass);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -626,6 +648,15 @@
     <h1>GUNDLE</h1>
     <div class="tagline">Six shots. One target.</div>
   </header>
+
+  <!-- Shown until guns.json finishes loading -->
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <div>LOADING ARMORY…</div>
+  </div>
+
+  <!-- The actual game UI — hidden until data loads -->
+  <div id="gameRoot" style="display:none">
 
   <div class="intro">
     Pick a <strong>manufacturer</strong>, then a <strong>model</strong>, and hit FIRE. You have <strong>6 tries</strong>. After each guess, every attribute is colored:
@@ -702,6 +733,8 @@
     <button class="play-again" id="playAgain">PLAY AGAIN</button>
   </div>
 
+  </div><!-- /#gameRoot -->
+
   <footer>
     Inspired by Wordle &amp; Cardle &nbsp;·&nbsp; A daily puzzle for firearm enthusiasts
   </footer>
@@ -710,219 +743,54 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const GUNS = [
-    { manufacturer: "Kalashnikov", model: "AK-47",          type: "Rifle", origin: "Soviet Union",   caliber: "7.62x39mm",   action: "Gas-operated", capacity: 30, year: 1949, role: "Military",
-      flavor: "The Avtomat Kalashnikova. Mikhail Kalashnikov's design — the most produced firearm in history, with over 100 million made." },
-    { manufacturer: "Kalashnikov", model: "AKM",            type: "Rifle", origin: "Soviet Union",   caliber: "7.62x39mm",   action: "Gas-operated", capacity: 30, year: 1959, role: "Military",
-      flavor: "The modernized AK — stamped receiver, lighter, the version most people picture when they think 'AK.'" },
-    { manufacturer: "Kalashnikov", model: "AK-74",          type: "Rifle", origin: "Soviet Union",   caliber: "5.45x39mm",   action: "Gas-operated", capacity: 30, year: 1974, role: "Military",
-      flavor: "The Soviet response to the M16 — small-caliber, high-velocity Kalashnikov." },
-    { manufacturer: "Kalashnikov", model: "AK-12",          type: "Rifle", origin: "Russia",         caliber: "5.45x39mm",   action: "Gas-operated", capacity: 30, year: 2018, role: "Military",
-      flavor: "The latest iteration of the Kalashnikov, adopted by the Russian Armed Forces." },
-    { manufacturer: "Izhmash",     model: "Saiga-12",       type: "Shotgun", origin: "Russia",       caliber: "12 gauge",    action: "Gas-operated", capacity: 10, year: 1990, role: "Civilian",
-      flavor: "An AK platform reworked as a magazine-fed semi-auto shotgun." },
-    { manufacturer: "Izhmash",     model: "SVD Dragunov",   type: "Rifle", origin: "Soviet Union",   caliber: "7.62x54mmR",  action: "Gas-operated", capacity: 10, year: 1963, role: "Military",
-      flavor: "The Soviet designated marksman rifle — a squad precision weapon, not a true sniper rifle." },
-    { manufacturer: "Tula",        model: "Mosin–Nagant",   type: "Rifle", origin: "Russian Empire", caliber: "7.62x54mmR",  action: "Bolt-action",  capacity: 5,  year: 1891, role: "Military",
-      flavor: "The rugged Russian bolt-action that served in two World Wars and beyond." },
-    { manufacturer: "Tula",        model: "PPSh-41",        type: "Submachine Gun", origin: "Soviet Union", caliber: "7.62x25mm", action: "Blowback", capacity: 71, year: 1941, role: "Military",
-      flavor: "The Red Army's stamped-steel SMG with the iconic 71-round drum." },
+  // ----- DATA STATE (populated from fetch on page load) -----
+  let GUNS = [];
+  let TYPE_FAMILIES = {};
+  let ORIGIN_REGIONS = {};
+  let CALIBER_FAMILIES = {};
+  let ACTION_FAMILIES = {};
+  let ROLE_FAMILIES = {};
+  let DATA_READY = false;
 
-    { manufacturer: "Colt",        model: "M1911",          type: "Pistol", origin: "USA",           caliber: ".45 ACP",     action: "Recoil-operated", capacity: 7, year: 1911, role: "Military",
-      flavor: "John Browning's masterpiece — standard US sidearm for over 70 years." },
-    { manufacturer: "Colt",        model: "Single Action Army", type: "Revolver", origin: "USA",     caliber: ".45 Colt",    action: "Single-action", capacity: 6, year: 1873, role: "Civilian",
-      flavor: "'The gun that won the West' — the cowboy revolver, the Peacemaker." },
-    { manufacturer: "Colt",        model: "Python",         type: "Revolver", origin: "USA",         caliber: ".357 Magnum", action: "Double-action", capacity: 6, year: 1955, role: "Civilian",
-      flavor: "The Cadillac of revolvers — Colt's premium .357 with its iconic ventilated rib." },
-    { manufacturer: "Colt",        model: "AR-15",          type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1959, role: "Civilian",
-      flavor: "Eugene Stoner's lightweight rifle, the civilian semi-auto cousin of the military M16." },
-    { manufacturer: "Colt",        model: "M16",            type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1964, role: "Military",
-      flavor: "The Vietnam-era rifle that replaced the M14 as the standard US service rifle." },
-    { manufacturer: "Colt",        model: "M4 Carbine",     type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1994, role: "Military",
-      flavor: "The shorter, lighter carbine version of the M16, now standard issue for most US troops." },
+  // Fetch the firearm database. Lives in guns.json next to this file.
+  // The browser will request it as soon as the page loads.
+  async function loadData() {
+    const loadingEl = document.getElementById('loadingState');
+    try {
+      const res = await fetch('guns.json', { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
 
-    { manufacturer: "Springfield Armory", model: "M1 Garand",  type: "Rifle", origin: "USA", caliber: ".30-06", action: "Gas-operated", capacity: 8, year: 1936, role: "Military",
-      flavor: "Patton called it 'the greatest battle implement ever devised.' The iconic 'ping' of WWII." },
-    { manufacturer: "Springfield Armory", model: "M1903",      type: "Rifle", origin: "USA", caliber: ".30-06", action: "Bolt-action", capacity: 5, year: 1903, role: "Military",
-      flavor: "The American bolt-action that bridged WWI and WWII, prized by snipers." },
-    { manufacturer: "Springfield Armory", model: "M14",        type: "Rifle", origin: "USA", caliber: "7.62x51mm", action: "Gas-operated", capacity: 20, year: 1959, role: "Military",
-      flavor: "Briefly the standard US service rifle before the M16 took over in Vietnam." },
-    { manufacturer: "Springfield Armory", model: "XD-9",       type: "Pistol", origin: "USA", caliber: "9x19mm", action: "Striker-fired", capacity: 16, year: 2002, role: "Duty",
-      flavor: "Croatian-designed (HS2000), imported and rebranded by Springfield for the US market." },
+      GUNS             = data.guns;
+      TYPE_FAMILIES    = data.categoryFamilies.type;
+      ORIGIN_REGIONS   = data.categoryFamilies.origin;
+      CALIBER_FAMILIES = data.categoryFamilies.caliber;
+      ACTION_FAMILIES  = data.categoryFamilies.action;
+      ROLE_FAMILIES    = data.categoryFamilies.role;
+      DATA_READY = true;
 
-    { manufacturer: "Winchester",  model: "Model 1894",     type: "Rifle",  origin: "USA",          caliber: ".30-30",       action: "Lever-action", capacity: 7, year: 1894, role: "Hunting",
-      flavor: "Designed by John Browning — the lever gun that won the West for a second time." },
-    { manufacturer: "Winchester",  model: "Model 1873",     type: "Rifle",  origin: "USA",          caliber: ".44-40",       action: "Lever-action", capacity: 15, year: 1873, role: "Civilian",
-      flavor: "Another contender for 'the gun that won the West.'" },
-    { manufacturer: "Winchester",  model: "Model 1897",     type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 5, year: 1897, role: "Military",
-      flavor: "Browning's 'Trench Gun' of WWI — so devastating Germany tried to ban it." },
-    { manufacturer: "Winchester",  model: "Model 70",       type: "Rifle",  origin: "USA",          caliber: ".30-06",       action: "Bolt-action",  capacity: 5, year: 1936, role: "Hunting",
-      flavor: "'The rifleman's rifle' — the benchmark American hunting bolt-action." },
+      // Hide loading state, reveal the game
+      if (loadingEl) loadingEl.style.display = 'none';
+      document.getElementById('gameRoot').style.display = '';
 
-    { manufacturer: "Remington",   model: "Model 700",      type: "Rifle",  origin: "USA",          caliber: ".308 Win",     action: "Bolt-action",  capacity: 4, year: 1962, role: "Hunting",
-      flavor: "The benchmark American sporting bolt-action — also the basis of the M24 sniper system." },
-    { manufacturer: "Remington",   model: "Model 870",      type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 5, year: 1950, role: "Civilian",
-      flavor: "The most popular pump shotgun ever made — over 11 million produced." },
-    { manufacturer: "Remington",   model: "Model 1100",     type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Gas-operated", capacity: 5, year: 1963, role: "Hunting",
-      flavor: "America's iconic gas-operated semi-auto shotgun." },
+      // Now that data is in, pick the daily answer and reveal the table
+      answer = pickAnswer();
+      rebuildGuessTable();
+    } catch (err) {
+      console.error('Failed to load guns.json:', err);
+      if (loadingEl) {
+        loadingEl.innerHTML =
+          '<div style="color:var(--higher);font-family:Oswald,sans-serif;' +
+          'letter-spacing:0.1em;text-transform:uppercase;font-size:14px;">' +
+          'JAMMED — could not load gun database</div>' +
+          '<div style="color:var(--ink-dim);font-size:12px;margin-top:8px;' +
+          'font-family:JetBrains Mono,monospace;">' +
+          'Make sure guns.json is hosted alongside index.html. (' +
+          err.message + ')</div>';
+      }
+    }
+  }
 
-    { manufacturer: "Mossberg",    model: "500",            type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 6, year: 1960, role: "Civilian",
-      flavor: "The other great American pump gun — adopted by every branch of the US military." },
-    { manufacturer: "Mossberg",    model: "590",            type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 9, year: 1987, role: "Military",
-      flavor: "The military-spec 500, with extended magazine tube and bayonet lug." },
-
-    { manufacturer: "Henry",       model: "Henry Rifle",    type: "Rifle",  origin: "USA",          caliber: ".44 Henry",    action: "Lever-action", capacity: 16, year: 1860, role: "Military",
-      flavor: "'That damned Yankee rifle that you load on Sunday and shoot all week.'" },
-
-    { manufacturer: "Glock",       model: "17",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 17, year: 1982, role: "Duty",
-      flavor: "Gaston Glock's polymer-framed pistol that revolutionized handgun design." },
-    { manufacturer: "Glock",       model: "19",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 15, year: 1988, role: "Duty",
-      flavor: "The compact Glock — arguably the most popular handgun in the world." },
-    { manufacturer: "Glock",       model: "26",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 10, year: 1995, role: "Concealed",
-      flavor: "The 'Baby Glock' — subcompact concealed-carry version of the 17." },
-    { manufacturer: "Glock",       model: "18",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 33, year: 1986, role: "Military",
-      flavor: "The full-auto Glock — restricted to military and law enforcement only." },
-
-    { manufacturer: "Beretta",     model: "92FS",           type: "Pistol", origin: "Italy",        caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1975, role: "Duty",
-      flavor: "Adopted by the US military as the M9, replacing the 1911 in 1985." },
-    { manufacturer: "Beretta",     model: "M9",             type: "Pistol", origin: "Italy",        caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1985, role: "Military",
-      flavor: "The US military designation of the Beretta 92FS." },
-    { manufacturer: "Beretta",     model: "ARX160",         type: "Rifle",  origin: "Italy",        caliber: "5.56x45mm",    action: "Gas-operated",     capacity: 30, year: 2008, role: "Military",
-      flavor: "Beretta's modular service rifle, fielded by Italian armed forces." },
-
-    { manufacturer: "SIG Sauer",   model: "P226",           type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1984, role: "Duty",
-      flavor: "Favored by Navy SEALs and law enforcement worldwide for its reliability." },
-    { manufacturer: "SIG Sauer",   model: "P320",           type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Striker-fired",   capacity: 17, year: 2014, role: "Duty",
-      flavor: "The modular pistol that became the US Army's M17/M18, replacing the Beretta M9." },
-    { manufacturer: "SIG Sauer",   model: "MCX Spear",      type: "Rifle",  origin: "USA",          caliber: "6.8x51mm",     action: "Gas-operated",    capacity: 20, year: 2022, role: "Military",
-      flavor: "The XM7 — the US Army's next-generation rifle replacing the M4 in close-combat units." },
-
-    { manufacturer: "Heckler & Koch", model: "MP5",         type: "Submachine Gun", origin: "Germany", caliber: "9x19mm",    action: "Roller-delayed",  capacity: 30, year: 1966, role: "Military",
-      flavor: "H&K's roller-delayed SMG — the gold standard for counter-terror units worldwide." },
-    { manufacturer: "Heckler & Koch", model: "G3",          type: "Rifle",  origin: "Germany",      caliber: "7.62x51mm",    action: "Roller-delayed",  capacity: 20, year: 1958, role: "Military",
-      flavor: "H&K's roller-delayed battle rifle, fielded by 60+ countries." },
-    { manufacturer: "Heckler & Koch", model: "G36",         type: "Rifle",  origin: "Germany",      caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1995, role: "Military",
-      flavor: "The Bundeswehr's standard service rifle from the 1990s, with its distinctive integrated optics." },
-    { manufacturer: "Heckler & Koch", model: "USP",         type: "Pistol", origin: "Germany",      caliber: ".40 S&W",      action: "Recoil-operated", capacity: 13, year: 1993, role: "Duty",
-      flavor: "The 'Universal Self-loading Pistol' — H&K's polymer-framed duty pistol." },
-
-    { manufacturer: "Walther",     model: "PPK",            type: "Pistol", origin: "Germany",      caliber: ".380 ACP",     action: "Blowback",        capacity: 6,  year: 1931, role: "Concealed",
-      flavor: "James Bond's pistol of choice — a pre-war German concealed-carry classic." },
-    { manufacturer: "Walther",     model: "P38",            type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 8,  year: 1938, role: "Military",
-      flavor: "The Wehrmacht's WWII service pistol that replaced the Luger." },
-    { manufacturer: "Walther",     model: "PPQ",            type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Striker-fired",   capacity: 15, year: 2011, role: "Duty",
-      flavor: "Walther's modern striker-fired duty pistol, known for its excellent trigger." },
-
-    { manufacturer: "Mauser",      model: "Karabiner 98k",  type: "Rifle",  origin: "Germany",      caliber: "7.92x57mm",    action: "Bolt-action",     capacity: 5,  year: 1935, role: "Military",
-      flavor: "The standard Wehrmacht service rifle of WWII, descended from Mauser's 1898 design." },
-    { manufacturer: "Mauser",      model: "C96",            type: "Pistol", origin: "Germany",      caliber: "7.63x25mm",    action: "Recoil-operated", capacity: 10, year: 1896, role: "Military",
-      flavor: "The 'Broomhandle' — the iconic semi-auto pistol of the late 19th century." },
-
-    { manufacturer: "DWM",         model: "Luger P08",      type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 8,  year: 1908, role: "Military",
-      flavor: "The toggle-action pistol that introduced 9mm Parabellum to the world." },
-
-    { manufacturer: "Smith & Wesson", model: "Model 29",    type: "Revolver", origin: "USA",        caliber: ".44 Magnum",   action: "Double-action",   capacity: 6,  year: 1955, role: "Civilian",
-      flavor: "Dirty Harry's revolver. 'The most powerful handgun in the world' — at the time." },
-    { manufacturer: "Smith & Wesson", model: "Model 10",    type: "Revolver", origin: "USA",        caliber: ".38 Special",  action: "Double-action",   capacity: 6,  year: 1899, role: "Duty",
-      flavor: "The 'Military & Police' revolver that armed cops for most of the 20th century." },
-    { manufacturer: "Smith & Wesson", model: "Model 500",   type: "Revolver", origin: "USA",        caliber: ".500 S&W",     action: "Double-action",   capacity: 5,  year: 2003, role: "Civilian",
-      flavor: "The hand-cannon of revolvers — currently the most powerful production handgun." },
-    { manufacturer: "Smith & Wesson", model: "M&P9",        type: "Pistol",  origin: "USA",         caliber: "9x19mm",       action: "Striker-fired",   capacity: 17, year: 2005, role: "Duty",
-      flavor: "Smith & Wesson's striker-fired answer to Glock dominance in police duty pistols." },
-
-    { manufacturer: "Ruger",       model: "10/22",          type: "Rifle",  origin: "USA",          caliber: ".22 LR",       action: "Blowback",        capacity: 10, year: 1964, role: "Civilian",
-      flavor: "America's most popular .22 rifle — over 7 million made." },
-    { manufacturer: "Ruger",       model: "Mini-14",        type: "Rifle",  origin: "USA",          caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 20, year: 1973, role: "Civilian",
-      flavor: "A scaled-down M14 in 5.56 — the rancher's semi-auto." },
-    { manufacturer: "Ruger",       model: "GP100",          type: "Revolver", origin: "USA",        caliber: ".357 Magnum",  action: "Double-action",   capacity: 6,  year: 1985, role: "Duty",
-      flavor: "Ruger's heavy-duty .357 Magnum revolver — built like a tank." },
-
-    { manufacturer: "Barrett",     model: "M82",            type: "Rifle",  origin: "USA",          caliber: ".50 BMG",      action: "Recoil-operated", capacity: 10, year: 1982, role: "Military",
-      flavor: "The .50-cal anti-materiel rifle — Ronnie Barrett designed the prototype in his garage." },
-
-    { manufacturer: "FN Herstal",  model: "FAL",            type: "Rifle",  origin: "Belgium",      caliber: "7.62x51mm",    action: "Gas-operated",    capacity: 20, year: 1953, role: "Military",
-      flavor: "'The Right Arm of the Free World' — adopted by 90+ nations during the Cold War." },
-    { manufacturer: "FN Herstal",  model: "SCAR-H",         type: "Rifle",  origin: "Belgium",      caliber: "7.62x51mm",    action: "Gas-operated",    capacity: 20, year: 2009, role: "Military",
-      flavor: "The Special Operations Combat Assault Rifle — battle-rifle variant in 7.62." },
-    { manufacturer: "FN Herstal",  model: "P90",            type: "Submachine Gun", origin: "Belgium", caliber: "5.7x28mm",  action: "Blowback",        capacity: 50, year: 1990, role: "Military",
-      flavor: "The futuristic bullpup PDW — top-loading 50-round magazine." },
-    { manufacturer: "FN Herstal",  model: "Five-seveN",     type: "Pistol", origin: "Belgium",      caliber: "5.7x28mm",     action: "Recoil-operated", capacity: 20, year: 1998, role: "Duty",
-      flavor: "The pistol companion to the P90 — armor-piercing pistol cartridge." },
-
-    { manufacturer: "Steyr",       model: "AUG",            type: "Rifle",  origin: "Austria",      caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1978, role: "Military",
-      flavor: "The futuristic-looking bullpup that put Austria on the small-arms map." },
-
-    { manufacturer: "IWI",         model: "Uzi",            type: "Submachine Gun", origin: "Israel", caliber: "9x19mm",     action: "Blowback",        capacity: 32, year: 1950, role: "Military",
-      flavor: "Designed by Uziel Gal — compact telescoping bolt, guarded presidents and prime ministers." },
-    { manufacturer: "IWI",         model: "Tavor",          type: "Rifle",  origin: "Israel",       caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 2001, role: "Military",
-      flavor: "Israel's modern bullpup, replacing the M16 family in the IDF." },
-    { manufacturer: "IWI",         model: "Desert Eagle",   type: "Pistol", origin: "Israel",       caliber: ".50 AE",       action: "Gas-operated",    capacity: 7,  year: 1983, role: "Civilian",
-      flavor: "The hand-cannon — a gas-operated pistol firing magnum rifle-class cartridges." },
-    { manufacturer: "IWI",         model: "Galil",          type: "Rifle",  origin: "Israel",       caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 35, year: 1972, role: "Military",
-      flavor: "Israel's AK-derived service rifle, designed after lessons from the Six-Day War." },
-
-    { manufacturer: "RSAF Enfield",model: "Lee–Enfield",    type: "Rifle",  origin: "UK",           caliber: ".303 British", action: "Bolt-action",     capacity: 10, year: 1895, role: "Military",
-      flavor: "The famously fast-cycling British bolt-action of both World Wars." },
-    { manufacturer: "RSAF Enfield",model: "Sten Gun",       type: "Submachine Gun", origin: "UK",   caliber: "9x19mm",       action: "Blowback",        capacity: 32, year: 1941, role: "Military",
-      flavor: "Britain's wartime emergency SMG — crude, cheap, and produced by the millions." },
-    { manufacturer: "RSAF Enfield",model: "L85A2",          type: "Rifle",  origin: "UK",           caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1985, role: "Military",
-      flavor: "The British Army's bullpup service rifle — initially troubled, refined into the A2 by H&K." },
-
-    { manufacturer: "MAS",         model: "FAMAS",          type: "Rifle",  origin: "France",       caliber: "5.56x45mm",    action: "Lever-delayed",   capacity: 25, year: 1978, role: "Military",
-      flavor: "'Le Clairon' — the bugle. France's bullpup service rifle with its distinctive carry handle." },
-
-    { manufacturer: "Benelli",     model: "M4",             type: "Shotgun", origin: "Italy",       caliber: "12 gauge",     action: "Gas-operated",    capacity: 7,  year: 1998, role: "Military",
-      flavor: "The US military's M1014 — a self-regulating gas system for combat reliability." },
-    { manufacturer: "Benelli",     model: "M2",             type: "Shotgun", origin: "Italy",       caliber: "12 gauge",     action: "Recoil-operated", capacity: 5,  year: 1995, role: "Hunting",
-      flavor: "Inertia-driven semi-auto shotgun, beloved by waterfowl and competition shooters." },
-
-    { manufacturer: "Auto-Ordnance", model: "Thompson M1928", type: "Submachine Gun", origin: "USA", caliber: ".45 ACP",     action: "Blowback",        capacity: 30, year: 1921, role: "Military",
-      flavor: "The Tommy Gun. Chicago typewriter — from gangsters to GIs storming Normandy." },
-    { manufacturer: "Auto-Ordnance", model: "M1A1",         type: "Submachine Gun", origin: "USA", caliber: ".45 ACP",       action: "Blowback",        capacity: 30, year: 1942, role: "Military",
-      flavor: "The simplified wartime Thompson, mass-produced for WWII." },
-  ];
-
-  const TYPE_FAMILIES = {
-    "Rifle": "long", "Shotgun": "long",
-    "Submachine Gun": "compact-auto",
-    "Pistol": "handgun", "Revolver": "handgun",
-  };
-
-  const ORIGIN_REGIONS = {
-    "USA": "north-america",
-    "Soviet Union": "russia-bloc", "Russia": "russia-bloc", "Russian Empire": "russia-bloc",
-    "Germany": "western-europe", "Belgium": "western-europe", "France": "western-europe",
-    "Italy": "western-europe", "Austria": "western-europe", "UK": "western-europe",
-    "Israel": "middle-east",
-  };
-
-  const CALIBER_FAMILIES = {
-    "5.56x45mm": "intermediate-rifle", "5.45x39mm": "intermediate-rifle", "7.62x39mm": "intermediate-rifle",
-    "6.8x51mm": "intermediate-rifle", ".30-30": "intermediate-rifle", ".44-40": "intermediate-rifle",
-    "7.62x51mm": "full-rifle", "7.62x54mmR": "full-rifle", ".30-06": "full-rifle",
-    ".308 Win": "full-rifle", ".303 British": "full-rifle", "7.92x57mm": "full-rifle", ".44 Henry": "full-rifle",
-    ".50 BMG": "anti-materiel",
-    "9x19mm": "pistol-9mm", "7.62x25mm": "pistol-9mm", "7.63x25mm": "pistol-9mm", ".380 ACP": "pistol-9mm",
-    "5.7x28mm": "pistol-pdw",
-    ".45 ACP": "pistol-large", ".45 Colt": "pistol-large", ".40 S&W": "pistol-large",
-    ".44 Magnum": "pistol-magnum", ".357 Magnum": "pistol-magnum", ".50 AE": "pistol-magnum", ".500 S&W": "pistol-magnum",
-    ".38 Special": "pistol-small",
-    ".22 LR": "rimfire",
-    "12 gauge": "shotshell",
-  };
-
-  const ACTION_FAMILIES = {
-    "Gas-operated": "auto-gas", "Recoil-operated": "auto-recoil",
-    "Roller-delayed": "auto-delayed", "Lever-delayed": "auto-delayed",
-    "Blowback": "auto-blowback", "Striker-fired": "auto-blowback",
-    "Bolt-action": "manual", "Lever-action": "manual", "Pump-action": "manual",
-    "Single-action": "manual-revolver", "Double-action": "manual-revolver",
-  };
-
-  const ROLE_FAMILIES = {
-    "Military": "service", "Duty": "service",
-    "Hunting": "civilian", "Civilian": "civilian", "Concealed": "civilian",
-  };
 
   let answer = null;
   let guesses = [];
@@ -1386,8 +1254,9 @@
     showToast('New target locked');
   });
 
-  answer = pickAnswer();
-  rebuildGuessTable();
+  // Kick off data load. Game gets initialized inside loadData() once
+  // guns.json is parsed.
+  loadData();
 </script>
 
 </body>
