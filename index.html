@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GUNDLE — Daily Firearm Guessing Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Bitter:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e0d0b;
+    --bg-2: #15130f;
+    --panel: #1c1916;
+    --panel-2: #221f1a;
+    --ink: #ece4d4;
+    --ink-dim: #a89e89;
+    --ink-faint: #6b6354;
+    --rule: #2a2620;
+    --brass: #b08a3e;
+    --brass-bright: #d4a94a;
+    --hit: #4a7c3a;
+    --hit-2: #5a9444;
+    --partial: #c89a3a;
+    --partial-2: #e0b34d;
+    --miss: #3a3530;
+    --higher: #8e3a2b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Bitter', Georgia, serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top, #1a1612 0%, transparent 60%),
+      radial-gradient(ellipse at bottom right, #1a1410 0%, transparent 50%),
+      var(--bg);
+    background-attachment: fixed;
+    padding: 24px 16px 80px;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    z-index: 1;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  header {
+    text-align: center;
+    border-top: 3px double var(--brass);
+    border-bottom: 3px double var(--brass);
+    padding: 18px 0 14px;
+    margin-bottom: 28px;
+  }
+
+  .pretitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(48px, 9vw, 84px);
+    letter-spacing: 0.06em;
+    line-height: 0.9;
+    background: linear-gradient(180deg, var(--ink) 0%, var(--brass-bright) 50%, var(--brass) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+
+  .tagline {
+    font-family: 'Bitter', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  .intro {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 18px 22px;
+    margin-bottom: 22px;
+    font-size: 14px;
+    color: var(--ink-dim);
+    line-height: 1.6;
+  }
+
+  .intro strong { color: var(--ink); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+
+  .swatch {
+    width: 14px; height: 14px;
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .input-panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 18px;
+    margin-bottom: 24px;
+  }
+
+  .selectors {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .selector-group label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--brass-bright);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .dropdown { position: relative; }
+
+  .dd-button {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'Bitter', serif;
+    font-size: 15px;
+    padding: 12px 36px 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+    height: 46px;
+  }
+
+  .dd-button:hover:not(:disabled) { border-color: var(--brass); }
+  .dd-button.open  { border-color: var(--brass); }
+
+  .dd-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  .dd-button::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-25%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--brass);
+  }
+
+  .dd-button.placeholder {
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  .dd-list {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0; right: 0;
+    background: var(--panel-2);
+    border: 1px solid var(--brass);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 30;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .dd-list.open { display: block; }
+
+  .dd-search {
+    width: 100%;
+    background: var(--bg);
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'Bitter', serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    position: sticky;
+    top: 0;
+  }
+
+  .dd-search::placeholder { color: var(--ink-faint); font-style: italic; }
+
+  .dd-item {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    transition: background 0.1s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dd-item:last-child { border-bottom: none; }
+  .dd-item:hover, .dd-item.active {
+    background: var(--rule);
+    color: var(--brass-bright);
+  }
+
+  .dd-item.disabled {
+    color: var(--ink-faint);
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+
+  .dd-item .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  .dd-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  #guessBtn {
+    background: linear-gradient(180deg, #2a2620 0%, #1a1714 100%);
+    border: 1px solid var(--brass);
+    color: var(--brass-bright);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    padding: 0 28px;
+    height: 46px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  #guessBtn:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--brass) 0%, #8a6a2e 100%);
+    color: #1a1410;
+  }
+
+  #guessBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    margin-bottom: 24px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+  }
+
+  thead {
+    background: linear-gradient(180deg, #221f1a 0%, #15130f 100%);
+    border-bottom: 2px solid var(--brass);
+  }
+
+  th {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brass-bright);
+    padding: 14px 10px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+  }
+
+  th:last-child { border-right: none; }
+
+  td {
+    padding: 0;
+    border-right: 1px solid rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+    text-align: center;
+    height: 64px;
+  }
+
+  td:last-child { border-right: none; }
+
+  .cell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #f5ecd9;
+    font-weight: 500;
+    line-height: 1.2;
+    animation: flip 0.5s ease-out backwards;
+  }
+
+  tr td:nth-child(1) .cell { animation-delay: 0.0s; }
+  tr td:nth-child(2) .cell { animation-delay: 0.1s; }
+  tr td:nth-child(3) .cell { animation-delay: 0.2s; }
+  tr td:nth-child(4) .cell { animation-delay: 0.3s; }
+  tr td:nth-child(5) .cell { animation-delay: 0.4s; }
+  tr td:nth-child(6) .cell { animation-delay: 0.5s; }
+  tr td:nth-child(7) .cell { animation-delay: 0.6s; }
+  tr td:nth-child(8) .cell { animation-delay: 0.7s; }
+
+  @keyframes flip {
+    0% { transform: rotateX(90deg); opacity: 0; }
+    100% { transform: rotateX(0); opacity: 1; }
+  }
+
+  .cell.hit {
+    background: linear-gradient(180deg, var(--hit-2) 0%, var(--hit) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -2px 0 rgba(0,0,0,0.3);
+  }
+
+  .cell.partial {
+    background: linear-gradient(180deg, var(--partial-2) 0%, var(--partial) 100%);
+    color: #2a1f0a;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.3);
+  }
+
+  .cell.miss {
+    background: linear-gradient(180deg, #45403a 0%, var(--miss) 100%);
+    color: var(--ink-dim);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 0 rgba(0,0,0,0.3);
+  }
+
+  .arrow { font-size: 14px; margin-left: 2px; }
+
+  .name-cell {
+    background: var(--panel-2);
+    color: var(--ink);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0 12px;
+    border-left: 3px solid var(--brass);
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .status-bar .guesses-left strong {
+    color: var(--brass-bright);
+    font-size: 14px;
+  }
+
+  .endgame {
+    background: var(--panel);
+    border: 1px solid var(--brass);
+    padding: 28px;
+    text-align: center;
+    margin-top: 20px;
+    display: none;
+  }
+
+  .endgame.show { display: block; animation: rise 0.4s ease-out; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .endgame h2 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .endgame.win  h2 { color: var(--hit-2); text-shadow: 0 0 30px rgba(90,148,68,0.4); }
+  .endgame.lose h2 { color: var(--higher); }
+
+  .endgame .answer-name {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--brass-bright);
+    margin: 14px 0 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .endgame .answer-flavor {
+    font-family: 'Bitter', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-dim);
+    margin-bottom: 20px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .play-again {
+    background: transparent;
+    border: 1px solid var(--brass);
+    color: var(--brass-bright);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    padding: 12px 28px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .play-again:hover {
+    background: var(--brass);
+    color: #1a1410;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 8px 60px; }
+    h1 { font-size: 52px; }
+    .intro { padding: 14px 16px; font-size: 13px; }
+    .selectors { grid-template-columns: 1fr; gap: 12px; }
+    #guessBtn { width: 100%; }
+    th { font-size: 9px; padding: 10px 4px; letter-spacing: 0.1em; }
+    .cell { font-size: 10px; }
+    .name-cell { font-size: 11px; padding: 0 8px; }
+    td { height: 56px; }
+    .legend { font-size: 10px; gap: 10px; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2);
+    border: 1px solid var(--brass);
+    color: var(--ink);
+    padding: 12px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+    z-index: 100;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="pretitle">A Daily Firearm Guessing Game</div>
+    <h1>GUNDLE</h1>
+    <div class="tagline">Six shots. One target.</div>
+  </header>
+
+  <div class="intro">
+    Pick a <strong>manufacturer</strong>, then a <strong>model</strong>, and hit FIRE. You have <strong>6 tries</strong>. After each guess, every attribute is colored:
+    <span style="color:var(--hit-2);font-weight:600">green</span> = exact match,
+    <span style="color:var(--partial-2);font-weight:600">amber</span> = same family,
+    gray = wrong. Numbers show <strong>↑</strong> if the answer is higher, <strong>↓</strong> if lower.
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,var(--hit-2),var(--hit))"></span>EXACT</div>
+      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,var(--partial-2),var(--partial))"></span>CLOSE</div>
+      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,#45403a,var(--miss))"></span>WRONG</div>
+      <div class="legend-item">↑ HIGHER &nbsp; ↓ LOWER</div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="guesses-left">SHOTS LEFT: <strong id="shotsLeft">6</strong></div>
+    <div>TODAY'S TARGET</div>
+  </div>
+
+  <div class="input-panel">
+    <div class="selectors">
+      <div class="selector-group">
+        <label>Manufacturer</label>
+        <div class="dropdown" id="brandDropdown">
+          <button type="button" class="dd-button placeholder" id="brandBtn">Select a manufacturer…</button>
+          <div class="dd-list" id="brandList"></div>
+        </div>
+      </div>
+
+      <div class="selector-group">
+        <label>Model</label>
+        <div class="dropdown" id="modelDropdown">
+          <button type="button" class="dd-button placeholder" id="modelBtn" disabled>Pick a manufacturer first…</button>
+          <div class="dd-list" id="modelList"></div>
+        </div>
+      </div>
+
+      <button id="guessBtn" disabled>FIRE</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Firearm</th>
+          <th>Type</th>
+          <th>Origin</th>
+          <th>Caliber</th>
+          <th>Action</th>
+          <th>Capacity</th>
+          <th>Era</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody id="guessBody"></tbody>
+    </table>
+  </div>
+
+  <div class="endgame" id="endgame">
+    <h2 id="endTitle"></h2>
+    <div class="answer-name" id="answerName"></div>
+    <div class="answer-flavor" id="answerFlavor"></div>
+    <button class="play-again" id="playAgain">PLAY AGAIN</button>
+  </div>
+
+  <footer>
+    Inspired by Wordle &amp; Cardle &nbsp;·&nbsp; A daily puzzle for firearm enthusiasts
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const GUNS = [
+    { manufacturer: "Kalashnikov", model: "AK-47",          type: "Rifle", origin: "Soviet Union",   caliber: "7.62x39mm",   action: "Gas-operated", capacity: 30, year: 1949, role: "Military",
+      flavor: "The Avtomat Kalashnikova. Mikhail Kalashnikov's design — the most produced firearm in history, with over 100 million made." },
+    { manufacturer: "Kalashnikov", model: "AKM",            type: "Rifle", origin: "Soviet Union",   caliber: "7.62x39mm",   action: "Gas-operated", capacity: 30, year: 1959, role: "Military",
+      flavor: "The modernized AK — stamped receiver, lighter, the version most people picture when they think 'AK.'" },
+    { manufacturer: "Kalashnikov", model: "AK-74",          type: "Rifle", origin: "Soviet Union",   caliber: "5.45x39mm",   action: "Gas-operated", capacity: 30, year: 1974, role: "Military",
+      flavor: "The Soviet response to the M16 — small-caliber, high-velocity Kalashnikov." },
+    { manufacturer: "Kalashnikov", model: "AK-12",          type: "Rifle", origin: "Russia",         caliber: "5.45x39mm",   action: "Gas-operated", capacity: 30, year: 2018, role: "Military",
+      flavor: "The latest iteration of the Kalashnikov, adopted by the Russian Armed Forces." },
+    { manufacturer: "Izhmash",     model: "Saiga-12",       type: "Shotgun", origin: "Russia",       caliber: "12 gauge",    action: "Gas-operated", capacity: 10, year: 1990, role: "Civilian",
+      flavor: "An AK platform reworked as a magazine-fed semi-auto shotgun." },
+    { manufacturer: "Izhmash",     model: "SVD Dragunov",   type: "Rifle", origin: "Soviet Union",   caliber: "7.62x54mmR",  action: "Gas-operated", capacity: 10, year: 1963, role: "Military",
+      flavor: "The Soviet designated marksman rifle — a squad precision weapon, not a true sniper rifle." },
+    { manufacturer: "Tula",        model: "Mosin–Nagant",   type: "Rifle", origin: "Russian Empire", caliber: "7.62x54mmR",  action: "Bolt-action",  capacity: 5,  year: 1891, role: "Military",
+      flavor: "The rugged Russian bolt-action that served in two World Wars and beyond." },
+    { manufacturer: "Tula",        model: "PPSh-41",        type: "Submachine Gun", origin: "Soviet Union", caliber: "7.62x25mm", action: "Blowback", capacity: 71, year: 1941, role: "Military",
+      flavor: "The Red Army's stamped-steel SMG with the iconic 71-round drum." },
+
+    { manufacturer: "Colt",        model: "M1911",          type: "Pistol", origin: "USA",           caliber: ".45 ACP",     action: "Recoil-operated", capacity: 7, year: 1911, role: "Military",
+      flavor: "John Browning's masterpiece — standard US sidearm for over 70 years." },
+    { manufacturer: "Colt",        model: "Single Action Army", type: "Revolver", origin: "USA",     caliber: ".45 Colt",    action: "Single-action", capacity: 6, year: 1873, role: "Civilian",
+      flavor: "'The gun that won the West' — the cowboy revolver, the Peacemaker." },
+    { manufacturer: "Colt",        model: "Python",         type: "Revolver", origin: "USA",         caliber: ".357 Magnum", action: "Double-action", capacity: 6, year: 1955, role: "Civilian",
+      flavor: "The Cadillac of revolvers — Colt's premium .357 with its iconic ventilated rib." },
+    { manufacturer: "Colt",        model: "AR-15",          type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1959, role: "Civilian",
+      flavor: "Eugene Stoner's lightweight rifle, the civilian semi-auto cousin of the military M16." },
+    { manufacturer: "Colt",        model: "M16",            type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1964, role: "Military",
+      flavor: "The Vietnam-era rifle that replaced the M14 as the standard US service rifle." },
+    { manufacturer: "Colt",        model: "M4 Carbine",     type: "Rifle",  origin: "USA",           caliber: "5.56x45mm",   action: "Gas-operated", capacity: 30, year: 1994, role: "Military",
+      flavor: "The shorter, lighter carbine version of the M16, now standard issue for most US troops." },
+
+    { manufacturer: "Springfield Armory", model: "M1 Garand",  type: "Rifle", origin: "USA", caliber: ".30-06", action: "Gas-operated", capacity: 8, year: 1936, role: "Military",
+      flavor: "Patton called it 'the greatest battle implement ever devised.' The iconic 'ping' of WWII." },
+    { manufacturer: "Springfield Armory", model: "M1903",      type: "Rifle", origin: "USA", caliber: ".30-06", action: "Bolt-action", capacity: 5, year: 1903, role: "Military",
+      flavor: "The American bolt-action that bridged WWI and WWII, prized by snipers." },
+    { manufacturer: "Springfield Armory", model: "M14",        type: "Rifle", origin: "USA", caliber: "7.62x51mm", action: "Gas-operated", capacity: 20, year: 1959, role: "Military",
+      flavor: "Briefly the standard US service rifle before the M16 took over in Vietnam." },
+    { manufacturer: "Springfield Armory", model: "XD-9",       type: "Pistol", origin: "USA", caliber: "9x19mm", action: "Striker-fired", capacity: 16, year: 2002, role: "Duty",
+      flavor: "Croatian-designed (HS2000), imported and rebranded by Springfield for the US market." },
+
+    { manufacturer: "Winchester",  model: "Model 1894",     type: "Rifle",  origin: "USA",          caliber: ".30-30",       action: "Lever-action", capacity: 7, year: 1894, role: "Hunting",
+      flavor: "Designed by John Browning — the lever gun that won the West for a second time." },
+    { manufacturer: "Winchester",  model: "Model 1873",     type: "Rifle",  origin: "USA",          caliber: ".44-40",       action: "Lever-action", capacity: 15, year: 1873, role: "Civilian",
+      flavor: "Another contender for 'the gun that won the West.'" },
+    { manufacturer: "Winchester",  model: "Model 1897",     type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 5, year: 1897, role: "Military",
+      flavor: "Browning's 'Trench Gun' of WWI — so devastating Germany tried to ban it." },
+    { manufacturer: "Winchester",  model: "Model 70",       type: "Rifle",  origin: "USA",          caliber: ".30-06",       action: "Bolt-action",  capacity: 5, year: 1936, role: "Hunting",
+      flavor: "'The rifleman's rifle' — the benchmark American hunting bolt-action." },
+
+    { manufacturer: "Remington",   model: "Model 700",      type: "Rifle",  origin: "USA",          caliber: ".308 Win",     action: "Bolt-action",  capacity: 4, year: 1962, role: "Hunting",
+      flavor: "The benchmark American sporting bolt-action — also the basis of the M24 sniper system." },
+    { manufacturer: "Remington",   model: "Model 870",      type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 5, year: 1950, role: "Civilian",
+      flavor: "The most popular pump shotgun ever made — over 11 million produced." },
+    { manufacturer: "Remington",   model: "Model 1100",     type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Gas-operated", capacity: 5, year: 1963, role: "Hunting",
+      flavor: "America's iconic gas-operated semi-auto shotgun." },
+
+    { manufacturer: "Mossberg",    model: "500",            type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 6, year: 1960, role: "Civilian",
+      flavor: "The other great American pump gun — adopted by every branch of the US military." },
+    { manufacturer: "Mossberg",    model: "590",            type: "Shotgun", origin: "USA",         caliber: "12 gauge",     action: "Pump-action",  capacity: 9, year: 1987, role: "Military",
+      flavor: "The military-spec 500, with extended magazine tube and bayonet lug." },
+
+    { manufacturer: "Henry",       model: "Henry Rifle",    type: "Rifle",  origin: "USA",          caliber: ".44 Henry",    action: "Lever-action", capacity: 16, year: 1860, role: "Military",
+      flavor: "'That damned Yankee rifle that you load on Sunday and shoot all week.'" },
+
+    { manufacturer: "Glock",       model: "17",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 17, year: 1982, role: "Duty",
+      flavor: "Gaston Glock's polymer-framed pistol that revolutionized handgun design." },
+    { manufacturer: "Glock",       model: "19",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 15, year: 1988, role: "Duty",
+      flavor: "The compact Glock — arguably the most popular handgun in the world." },
+    { manufacturer: "Glock",       model: "26",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 10, year: 1995, role: "Concealed",
+      flavor: "The 'Baby Glock' — subcompact concealed-carry version of the 17." },
+    { manufacturer: "Glock",       model: "18",             type: "Pistol", origin: "Austria",      caliber: "9x19mm",       action: "Striker-fired", capacity: 33, year: 1986, role: "Military",
+      flavor: "The full-auto Glock — restricted to military and law enforcement only." },
+
+    { manufacturer: "Beretta",     model: "92FS",           type: "Pistol", origin: "Italy",        caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1975, role: "Duty",
+      flavor: "Adopted by the US military as the M9, replacing the 1911 in 1985." },
+    { manufacturer: "Beretta",     model: "M9",             type: "Pistol", origin: "Italy",        caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1985, role: "Military",
+      flavor: "The US military designation of the Beretta 92FS." },
+    { manufacturer: "Beretta",     model: "ARX160",         type: "Rifle",  origin: "Italy",        caliber: "5.56x45mm",    action: "Gas-operated",     capacity: 30, year: 2008, role: "Military",
+      flavor: "Beretta's modular service rifle, fielded by Italian armed forces." },
+
+    { manufacturer: "SIG Sauer",   model: "P226",           type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 15, year: 1984, role: "Duty",
+      flavor: "Favored by Navy SEALs and law enforcement worldwide for its reliability." },
+    { manufacturer: "SIG Sauer",   model: "P320",           type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Striker-fired",   capacity: 17, year: 2014, role: "Duty",
+      flavor: "The modular pistol that became the US Army's M17/M18, replacing the Beretta M9." },
+    { manufacturer: "SIG Sauer",   model: "MCX Spear",      type: "Rifle",  origin: "USA",          caliber: "6.8x51mm",     action: "Gas-operated",    capacity: 20, year: 2022, role: "Military",
+      flavor: "The XM7 — the US Army's next-generation rifle replacing the M4 in close-combat units." },
+
+    { manufacturer: "Heckler & Koch", model: "MP5",         type: "Submachine Gun", origin: "Germany", caliber: "9x19mm",    action: "Roller-delayed",  capacity: 30, year: 1966, role: "Military",
+      flavor: "H&K's roller-delayed SMG — the gold standard for counter-terror units worldwide." },
+    { manufacturer: "Heckler & Koch", model: "G3",          type: "Rifle",  origin: "Germany",      caliber: "7.62x51mm",    action: "Roller-delayed",  capacity: 20, year: 1958, role: "Military",
+      flavor: "H&K's roller-delayed battle rifle, fielded by 60+ countries." },
+    { manufacturer: "Heckler & Koch", model: "G36",         type: "Rifle",  origin: "Germany",      caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1995, role: "Military",
+      flavor: "The Bundeswehr's standard service rifle from the 1990s, with its distinctive integrated optics." },
+    { manufacturer: "Heckler & Koch", model: "USP",         type: "Pistol", origin: "Germany",      caliber: ".40 S&W",      action: "Recoil-operated", capacity: 13, year: 1993, role: "Duty",
+      flavor: "The 'Universal Self-loading Pistol' — H&K's polymer-framed duty pistol." },
+
+    { manufacturer: "Walther",     model: "PPK",            type: "Pistol", origin: "Germany",      caliber: ".380 ACP",     action: "Blowback",        capacity: 6,  year: 1931, role: "Concealed",
+      flavor: "James Bond's pistol of choice — a pre-war German concealed-carry classic." },
+    { manufacturer: "Walther",     model: "P38",            type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 8,  year: 1938, role: "Military",
+      flavor: "The Wehrmacht's WWII service pistol that replaced the Luger." },
+    { manufacturer: "Walther",     model: "PPQ",            type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Striker-fired",   capacity: 15, year: 2011, role: "Duty",
+      flavor: "Walther's modern striker-fired duty pistol, known for its excellent trigger." },
+
+    { manufacturer: "Mauser",      model: "Karabiner 98k",  type: "Rifle",  origin: "Germany",      caliber: "7.92x57mm",    action: "Bolt-action",     capacity: 5,  year: 1935, role: "Military",
+      flavor: "The standard Wehrmacht service rifle of WWII, descended from Mauser's 1898 design." },
+    { manufacturer: "Mauser",      model: "C96",            type: "Pistol", origin: "Germany",      caliber: "7.63x25mm",    action: "Recoil-operated", capacity: 10, year: 1896, role: "Military",
+      flavor: "The 'Broomhandle' — the iconic semi-auto pistol of the late 19th century." },
+
+    { manufacturer: "DWM",         model: "Luger P08",      type: "Pistol", origin: "Germany",      caliber: "9x19mm",       action: "Recoil-operated", capacity: 8,  year: 1908, role: "Military",
+      flavor: "The toggle-action pistol that introduced 9mm Parabellum to the world." },
+
+    { manufacturer: "Smith & Wesson", model: "Model 29",    type: "Revolver", origin: "USA",        caliber: ".44 Magnum",   action: "Double-action",   capacity: 6,  year: 1955, role: "Civilian",
+      flavor: "Dirty Harry's revolver. 'The most powerful handgun in the world' — at the time." },
+    { manufacturer: "Smith & Wesson", model: "Model 10",    type: "Revolver", origin: "USA",        caliber: ".38 Special",  action: "Double-action",   capacity: 6,  year: 1899, role: "Duty",
+      flavor: "The 'Military & Police' revolver that armed cops for most of the 20th century." },
+    { manufacturer: "Smith & Wesson", model: "Model 500",   type: "Revolver", origin: "USA",        caliber: ".500 S&W",     action: "Double-action",   capacity: 5,  year: 2003, role: "Civilian",
+      flavor: "The hand-cannon of revolvers — currently the most powerful production handgun." },
+    { manufacturer: "Smith & Wesson", model: "M&P9",        type: "Pistol",  origin: "USA",         caliber: "9x19mm",       action: "Striker-fired",   capacity: 17, year: 2005, role: "Duty",
+      flavor: "Smith & Wesson's striker-fired answer to Glock dominance in police duty pistols." },
+
+    { manufacturer: "Ruger",       model: "10/22",          type: "Rifle",  origin: "USA",          caliber: ".22 LR",       action: "Blowback",        capacity: 10, year: 1964, role: "Civilian",
+      flavor: "America's most popular .22 rifle — over 7 million made." },
+    { manufacturer: "Ruger",       model: "Mini-14",        type: "Rifle",  origin: "USA",          caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 20, year: 1973, role: "Civilian",
+      flavor: "A scaled-down M14 in 5.56 — the rancher's semi-auto." },
+    { manufacturer: "Ruger",       model: "GP100",          type: "Revolver", origin: "USA",        caliber: ".357 Magnum",  action: "Double-action",   capacity: 6,  year: 1985, role: "Duty",
+      flavor: "Ruger's heavy-duty .357 Magnum revolver — built like a tank." },
+
+    { manufacturer: "Barrett",     model: "M82",            type: "Rifle",  origin: "USA",          caliber: ".50 BMG",      action: "Recoil-operated", capacity: 10, year: 1982, role: "Military",
+      flavor: "The .50-cal anti-materiel rifle — Ronnie Barrett designed the prototype in his garage." },
+
+    { manufacturer: "FN Herstal",  model: "FAL",            type: "Rifle",  origin: "Belgium",      caliber: "7.62x51mm",    action: "Gas-operated",    capacity: 20, year: 1953, role: "Military",
+      flavor: "'The Right Arm of the Free World' — adopted by 90+ nations during the Cold War." },
+    { manufacturer: "FN Herstal",  model: "SCAR-H",         type: "Rifle",  origin: "Belgium",      caliber: "7.62x51mm",    action: "Gas-operated",    capacity: 20, year: 2009, role: "Military",
+      flavor: "The Special Operations Combat Assault Rifle — battle-rifle variant in 7.62." },
+    { manufacturer: "FN Herstal",  model: "P90",            type: "Submachine Gun", origin: "Belgium", caliber: "5.7x28mm",  action: "Blowback",        capacity: 50, year: 1990, role: "Military",
+      flavor: "The futuristic bullpup PDW — top-loading 50-round magazine." },
+    { manufacturer: "FN Herstal",  model: "Five-seveN",     type: "Pistol", origin: "Belgium",      caliber: "5.7x28mm",     action: "Recoil-operated", capacity: 20, year: 1998, role: "Duty",
+      flavor: "The pistol companion to the P90 — armor-piercing pistol cartridge." },
+
+    { manufacturer: "Steyr",       model: "AUG",            type: "Rifle",  origin: "Austria",      caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1978, role: "Military",
+      flavor: "The futuristic-looking bullpup that put Austria on the small-arms map." },
+
+    { manufacturer: "IWI",         model: "Uzi",            type: "Submachine Gun", origin: "Israel", caliber: "9x19mm",     action: "Blowback",        capacity: 32, year: 1950, role: "Military",
+      flavor: "Designed by Uziel Gal — compact telescoping bolt, guarded presidents and prime ministers." },
+    { manufacturer: "IWI",         model: "Tavor",          type: "Rifle",  origin: "Israel",       caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 2001, role: "Military",
+      flavor: "Israel's modern bullpup, replacing the M16 family in the IDF." },
+    { manufacturer: "IWI",         model: "Desert Eagle",   type: "Pistol", origin: "Israel",       caliber: ".50 AE",       action: "Gas-operated",    capacity: 7,  year: 1983, role: "Civilian",
+      flavor: "The hand-cannon — a gas-operated pistol firing magnum rifle-class cartridges." },
+    { manufacturer: "IWI",         model: "Galil",          type: "Rifle",  origin: "Israel",       caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 35, year: 1972, role: "Military",
+      flavor: "Israel's AK-derived service rifle, designed after lessons from the Six-Day War." },
+
+    { manufacturer: "RSAF Enfield",model: "Lee–Enfield",    type: "Rifle",  origin: "UK",           caliber: ".303 British", action: "Bolt-action",     capacity: 10, year: 1895, role: "Military",
+      flavor: "The famously fast-cycling British bolt-action of both World Wars." },
+    { manufacturer: "RSAF Enfield",model: "Sten Gun",       type: "Submachine Gun", origin: "UK",   caliber: "9x19mm",       action: "Blowback",        capacity: 32, year: 1941, role: "Military",
+      flavor: "Britain's wartime emergency SMG — crude, cheap, and produced by the millions." },
+    { manufacturer: "RSAF Enfield",model: "L85A2",          type: "Rifle",  origin: "UK",           caliber: "5.56x45mm",    action: "Gas-operated",    capacity: 30, year: 1985, role: "Military",
+      flavor: "The British Army's bullpup service rifle — initially troubled, refined into the A2 by H&K." },
+
+    { manufacturer: "MAS",         model: "FAMAS",          type: "Rifle",  origin: "France",       caliber: "5.56x45mm",    action: "Lever-delayed",   capacity: 25, year: 1978, role: "Military",
+      flavor: "'Le Clairon' — the bugle. France's bullpup service rifle with its distinctive carry handle." },
+
+    { manufacturer: "Benelli",     model: "M4",             type: "Shotgun", origin: "Italy",       caliber: "12 gauge",     action: "Gas-operated",    capacity: 7,  year: 1998, role: "Military",
+      flavor: "The US military's M1014 — a self-regulating gas system for combat reliability." },
+    { manufacturer: "Benelli",     model: "M2",             type: "Shotgun", origin: "Italy",       caliber: "12 gauge",     action: "Recoil-operated", capacity: 5,  year: 1995, role: "Hunting",
+      flavor: "Inertia-driven semi-auto shotgun, beloved by waterfowl and competition shooters." },
+
+    { manufacturer: "Auto-Ordnance", model: "Thompson M1928", type: "Submachine Gun", origin: "USA", caliber: ".45 ACP",     action: "Blowback",        capacity: 30, year: 1921, role: "Military",
+      flavor: "The Tommy Gun. Chicago typewriter — from gangsters to GIs storming Normandy." },
+    { manufacturer: "Auto-Ordnance", model: "M1A1",         type: "Submachine Gun", origin: "USA", caliber: ".45 ACP",       action: "Blowback",        capacity: 30, year: 1942, role: "Military",
+      flavor: "The simplified wartime Thompson, mass-produced for WWII." },
+  ];
+
+  const TYPE_FAMILIES = {
+    "Rifle": "long", "Shotgun": "long",
+    "Submachine Gun": "compact-auto",
+    "Pistol": "handgun", "Revolver": "handgun",
+  };
+
+  const ORIGIN_REGIONS = {
+    "USA": "north-america",
+    "Soviet Union": "russia-bloc", "Russia": "russia-bloc", "Russian Empire": "russia-bloc",
+    "Germany": "western-europe", "Belgium": "western-europe", "France": "western-europe",
+    "Italy": "western-europe", "Austria": "western-europe", "UK": "western-europe",
+    "Israel": "middle-east",
+  };
+
+  const CALIBER_FAMILIES = {
+    "5.56x45mm": "intermediate-rifle", "5.45x39mm": "intermediate-rifle", "7.62x39mm": "intermediate-rifle",
+    "6.8x51mm": "intermediate-rifle", ".30-30": "intermediate-rifle", ".44-40": "intermediate-rifle",
+    "7.62x51mm": "full-rifle", "7.62x54mmR": "full-rifle", ".30-06": "full-rifle",
+    ".308 Win": "full-rifle", ".303 British": "full-rifle", "7.92x57mm": "full-rifle", ".44 Henry": "full-rifle",
+    ".50 BMG": "anti-materiel",
+    "9x19mm": "pistol-9mm", "7.62x25mm": "pistol-9mm", "7.63x25mm": "pistol-9mm", ".380 ACP": "pistol-9mm",
+    "5.7x28mm": "pistol-pdw",
+    ".45 ACP": "pistol-large", ".45 Colt": "pistol-large", ".40 S&W": "pistol-large",
+    ".44 Magnum": "pistol-magnum", ".357 Magnum": "pistol-magnum", ".50 AE": "pistol-magnum", ".500 S&W": "pistol-magnum",
+    ".38 Special": "pistol-small",
+    ".22 LR": "rimfire",
+    "12 gauge": "shotshell",
+  };
+
+  const ACTION_FAMILIES = {
+    "Gas-operated": "auto-gas", "Recoil-operated": "auto-recoil",
+    "Roller-delayed": "auto-delayed", "Lever-delayed": "auto-delayed",
+    "Blowback": "auto-blowback", "Striker-fired": "auto-blowback",
+    "Bolt-action": "manual", "Lever-action": "manual", "Pump-action": "manual",
+    "Single-action": "manual-revolver", "Double-action": "manual-revolver",
+  };
+
+  const ROLE_FAMILIES = {
+    "Military": "service", "Duty": "service",
+    "Hunting": "civilian", "Civilian": "civilian", "Concealed": "civilian",
+  };
+
+  let answer = null;
+  let guesses = [];
+  let selectedBrand = null;
+  let selectedModel = null;
+  const MAX_GUESSES = 6;
+
+  function fullName(g) { return g.manufacturer + ' ' + g.model; }
+
+  function pickAnswer() {
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth()+1) * 100 + today.getDate();
+    return GUNS[seed % GUNS.length];
+  }
+
+  function pickRandomAnswer() {
+    return GUNS[Math.floor(Math.random() * GUNS.length)];
+  }
+
+  function scoreGuess(guess, target) {
+    const r = {};
+    r.name = { value: fullName(guess), status: 'name' };
+
+    function cat(field, families) {
+      if (guess[field] === target[field]) return { value: guess[field], status: 'hit' };
+      if (families[guess[field]] && families[guess[field]] === families[target[field]])
+        return { value: guess[field], status: 'partial' };
+      return { value: guess[field], status: 'miss' };
+    }
+
+    r.type    = cat('type',    TYPE_FAMILIES);
+    r.origin  = cat('origin',  ORIGIN_REGIONS);
+    r.caliber = cat('caliber', CALIBER_FAMILIES);
+    r.action  = cat('action',  ACTION_FAMILIES);
+    r.role    = cat('role',    ROLE_FAMILIES);
+
+    {
+      const diff = target.capacity - guess.capacity;
+      let status = 'miss';
+      if (diff === 0) status = 'hit';
+      else if (Math.abs(diff) <= 3) status = 'partial';
+      r.capacity = { value: guess.capacity, status, arrow: diff > 0 ? '↑' : (diff < 0 ? '↓' : '') };
+    }
+
+    {
+      const diff = target.year - guess.year;
+      let status = 'miss';
+      if (diff === 0) status = 'hit';
+      else if (Math.abs(diff) <= 15) status = 'partial';
+      r.year = { value: guess.year, status, arrow: diff > 0 ? '↑' : (diff < 0 ? '↓' : '') };
+    }
+
+    return r;
+  }
+
+  const guessBody = document.getElementById('guessBody');
+  const shotsLeftEl = document.getElementById('shotsLeft');
+  const endgame = document.getElementById('endgame');
+  const endTitle = document.getElementById('endTitle');
+  const answerName = document.getElementById('answerName');
+  const answerFlavor = document.getElementById('answerFlavor');
+
+  function renderGuesses() {
+    guessBody.innerHTML = '';
+    guesses.forEach(g => {
+      const tr = document.createElement('tr');
+      const fields = ['name','type','origin','caliber','action','capacity','year','role'];
+      fields.forEach(f => {
+        const td = document.createElement('td');
+        const cell = document.createElement('div');
+        if (f === 'name') {
+          td.classList.add('name-cell');
+          cell.classList.add('cell');
+          cell.textContent = g.name.value;
+          cell.style.background = 'transparent';
+        } else {
+          cell.className = 'cell ' + g[f].status;
+          cell.textContent = g[f].value;
+          if (g[f].arrow) {
+            const a = document.createElement('span');
+            a.className = 'arrow';
+            a.textContent = ' ' + g[f].arrow;
+            cell.appendChild(a);
+          }
+        }
+        td.appendChild(cell);
+        tr.appendChild(td);
+      });
+      guessBody.appendChild(tr);
+    });
+    shotsLeftEl.textContent = MAX_GUESSES - guesses.length;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function endGame(won) {
+    brandBtn.disabled = true;
+    modelBtn.disabled = true;
+    guessBtn.disabled = true;
+    endgame.classList.add('show');
+    endgame.classList.remove('win','lose');
+    if (won) {
+      endgame.classList.add('win');
+      endTitle.textContent = 'DIRECT HIT';
+    } else {
+      endgame.classList.add('lose');
+      endTitle.textContent = 'OUT OF AMMO';
+    }
+    answerName.textContent = fullName(answer);
+    answerFlavor.textContent = answer.flavor || '';
+  }
+
+  const brandBtn  = document.getElementById('brandBtn');
+  const brandList = document.getElementById('brandList');
+  const modelBtn  = document.getElementById('modelBtn');
+  const modelList = document.getElementById('modelList');
+  const guessBtn  = document.getElementById('guessBtn');
+
+  function getBrands() {
+    return [...new Set(GUNS.map(g => g.manufacturer))].sort((a,b) => a.localeCompare(b));
+  }
+
+  function getModelsForBrand(brand) {
+    return GUNS.filter(g => g.manufacturer === brand)
+               .sort((a,b) => a.model.localeCompare(b.model, undefined, { numeric: true }));
+  }
+
+  function isAlreadyGuessed(brand, model) {
+    return guesses.some(g => g.name.value === brand + ' ' + model);
+  }
+
+  function closeAllDropdowns() {
+    brandList.classList.remove('open');
+    modelList.classList.remove('open');
+    brandBtn.classList.remove('open');
+    modelBtn.classList.remove('open');
+  }
+
+  function buildBrandList(filter = '') {
+    brandList.innerHTML = '';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'dd-search';
+    searchInput.placeholder = 'Search manufacturers…';
+    searchInput.value = filter;
+    searchInput.addEventListener('input', e => {
+      const val = e.target.value;
+      buildBrandList(val);
+      const newSearch = brandList.querySelector('.dd-search');
+      if (newSearch) {
+        newSearch.focus();
+        newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
+      }
+    });
+    searchInput.addEventListener('click', e => e.stopPropagation());
+    brandList.appendChild(searchInput);
+
+    const f = filter.toLowerCase().trim();
+    const brands = getBrands().filter(b => b.toLowerCase().includes(f));
+
+    if (!brands.length) {
+      const empty = document.createElement('div');
+      empty.className = 'dd-empty';
+      empty.textContent = 'No matching manufacturers';
+      brandList.appendChild(empty);
+      return;
+    }
+
+    brands.forEach(brand => {
+      const count = GUNS.filter(g => g.manufacturer === brand).length;
+      const item = document.createElement('div');
+      item.className = 'dd-item';
+      item.innerHTML = `<span>${brand}</span><span class="sub">${count} model${count !== 1 ? 's' : ''}</span>`;
+      item.addEventListener('click', () => {
+        selectBrand(brand);
+        closeAllDropdowns();
+      });
+      brandList.appendChild(item);
+    });
+  }
+
+  function selectBrand(brand) {
+    selectedBrand = brand;
+    selectedModel = null;
+    brandBtn.textContent = brand;
+    brandBtn.classList.remove('placeholder');
+    modelBtn.disabled = false;
+    modelBtn.textContent = 'Select a model…';
+    modelBtn.classList.add('placeholder');
+    guessBtn.disabled = true;
+  }
+
+  function buildModelList(filter = '') {
+    modelList.innerHTML = '';
+    if (!selectedBrand) return;
+
+    const models = getModelsForBrand(selectedBrand);
+    const showSearch = models.length > 6;
+
+    if (showSearch) {
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'dd-search';
+      searchInput.placeholder = 'Search models…';
+      searchInput.value = filter;
+      searchInput.addEventListener('input', e => {
+        const val = e.target.value;
+        buildModelList(val);
+        const newSearch = modelList.querySelector('.dd-search');
+        if (newSearch) {
+          newSearch.focus();
+          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
+        }
+      });
+      searchInput.addEventListener('click', e => e.stopPropagation());
+      modelList.appendChild(searchInput);
+    }
+
+    const f = filter.toLowerCase().trim();
+    const filtered = models.filter(g => g.model.toLowerCase().includes(f));
+
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'dd-empty';
+      empty.textContent = 'No matching models';
+      modelList.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach(g => {
+      const item = document.createElement('div');
+      const guessed = isAlreadyGuessed(g.manufacturer, g.model);
+      item.className = 'dd-item' + (guessed ? ' disabled' : '');
+      item.innerHTML = `<span>${g.model}</span><span class="sub">${g.type}</span>`;
+      if (!guessed) {
+        item.addEventListener('click', () => {
+          selectModel(g);
+          closeAllDropdowns();
+        });
+      }
+      modelList.appendChild(item);
+    });
+  }
+
+  function selectModel(gun) {
+    selectedModel = gun;
+    modelBtn.textContent = gun.model;
+    modelBtn.classList.remove('placeholder');
+    guessBtn.disabled = false;
+  }
+
+  brandBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (brandBtn.disabled) return;
+    const wasOpen = brandList.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+      buildBrandList('');
+      brandList.classList.add('open');
+      brandBtn.classList.add('open');
+      const search = brandList.querySelector('.dd-search');
+      if (search) setTimeout(() => search.focus(), 50);
+    }
+  });
+
+  modelBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (modelBtn.disabled) return;
+    const wasOpen = modelList.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+      buildModelList('');
+      modelList.classList.add('open');
+      modelBtn.classList.add('open');
+      const search = modelList.querySelector('.dd-search');
+      if (search) setTimeout(() => search.focus(), 50);
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.dropdown')) closeAllDropdowns();
+  });
+
+  guessBtn.addEventListener('click', () => {
+    if (!selectedModel) return;
+    if (isAlreadyGuessed(selectedModel.manufacturer, selectedModel.model)) {
+      showToast('Already guessed');
+      return;
+    }
+    const result = scoreGuess(selectedModel, answer);
+    guesses.push(result);
+
+    const wasMatch = (selectedModel.manufacturer === answer.manufacturer &&
+                      selectedModel.model === answer.model);
+
+    selectedBrand = null;
+    selectedModel = null;
+    brandBtn.textContent = 'Select a manufacturer…';
+    brandBtn.classList.add('placeholder');
+    modelBtn.textContent = 'Pick a manufacturer first…';
+    modelBtn.classList.add('placeholder');
+    modelBtn.disabled = true;
+    guessBtn.disabled = true;
+
+    renderGuesses();
+
+    if (wasMatch) {
+      setTimeout(() => endGame(true), 900);
+    } else if (guesses.length >= MAX_GUESSES) {
+      setTimeout(() => endGame(false), 900);
+    }
+  });
+
+  document.getElementById('playAgain').addEventListener('click', () => {
+    answer = pickRandomAnswer();
+    guesses = [];
+    selectedBrand = null;
+    selectedModel = null;
+    endgame.classList.remove('show');
+    brandBtn.disabled = false;
+    brandBtn.textContent = 'Select a manufacturer…';
+    brandBtn.classList.add('placeholder');
+    modelBtn.disabled = true;
+    modelBtn.textContent = 'Pick a manufacturer first…';
+    modelBtn.classList.add('placeholder');
+    guessBtn.disabled = true;
+    renderGuesses();
+    showToast('New target locked');
+  });
+
+  answer = pickAnswer();
+  renderGuesses();
+</script>
+
+</body>
+</html>
