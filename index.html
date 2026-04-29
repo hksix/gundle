@@ -346,17 +346,23 @@
     color: #f5ecd9;
     font-weight: 500;
     line-height: 1.2;
+  }
+
+  /* Only animate cells in a freshly-added row. Once the row's animation
+     finishes the .new-row class is removed so future re-renders won't
+     re-trigger it. */
+  tr.new-row .cell {
     animation: flip 0.5s ease-out backwards;
   }
 
-  tr td:nth-child(1) .cell { animation-delay: 0.0s; }
-  tr td:nth-child(2) .cell { animation-delay: 0.1s; }
-  tr td:nth-child(3) .cell { animation-delay: 0.2s; }
-  tr td:nth-child(4) .cell { animation-delay: 0.3s; }
-  tr td:nth-child(5) .cell { animation-delay: 0.4s; }
-  tr td:nth-child(6) .cell { animation-delay: 0.5s; }
-  tr td:nth-child(7) .cell { animation-delay: 0.6s; }
-  tr td:nth-child(8) .cell { animation-delay: 0.7s; }
+  tr.new-row td:nth-child(1) .cell { animation-delay: 0.0s; }
+  tr.new-row td:nth-child(2) .cell { animation-delay: 0.1s; }
+  tr.new-row td:nth-child(3) .cell { animation-delay: 0.2s; }
+  tr.new-row td:nth-child(4) .cell { animation-delay: 0.3s; }
+  tr.new-row td:nth-child(5) .cell { animation-delay: 0.4s; }
+  tr.new-row td:nth-child(6) .cell { animation-delay: 0.5s; }
+  tr.new-row td:nth-child(7) .cell { animation-delay: 0.6s; }
+  tr.new-row td:nth-child(8) .cell { animation-delay: 0.7s; }
 
   @keyframes flip {
     0% { transform: rotateX(90deg); opacity: 0; }
@@ -458,6 +464,90 @@
     margin-left: auto;
     margin-right: auto;
     line-height: 1.6;
+  }
+
+  /* SHARE GRID */
+  .share-section {
+    margin: 18px auto 22px;
+    padding: 18px 18px 20px;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    max-width: 380px;
+  }
+
+  .share-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--brass-bright);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .share-grid {
+    display: inline-grid;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 4px;
+  }
+
+  .share-cell {
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+  }
+
+  .share-cell.hit     { background: var(--hit-2); }
+  .share-cell.partial { background: var(--partial-2); }
+  .share-cell.miss    { background: #45403a; }
+  .share-cell.empty   { background: transparent; border: 1px dashed var(--rule); }
+
+  @media (max-width: 480px) {
+    .share-cell { width: 18px; height: 18px; }
+  }
+
+  .endgame-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-action {
+    background: transparent;
+    border: 1px solid var(--brass);
+    color: var(--brass-bright);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    padding: 12px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-action:hover {
+    background: var(--brass);
+    color: #1a1410;
+  }
+
+  .btn-action.primary {
+    background: linear-gradient(180deg, var(--brass) 0%, #8a6a2e 100%);
+    color: #1a1410;
+  }
+
+  .btn-action.primary:hover {
+    background: linear-gradient(180deg, var(--brass-bright) 0%, var(--brass) 100%);
+  }
+
+  .btn-action.copied {
+    background: var(--hit-2);
+    border-color: var(--hit-2);
+    color: #fff;
   }
 
   .play-again {
@@ -599,6 +689,16 @@
     <h2 id="endTitle"></h2>
     <div class="answer-name" id="answerName"></div>
     <div class="answer-flavor" id="answerFlavor"></div>
+
+    <div class="share-section">
+      <div class="share-label">YOUR RESULT</div>
+      <div class="share-grid" id="shareGrid"></div>
+      <div class="endgame-buttons">
+        <button class="btn-action primary" id="copyBtn">📋 COPY RESULT</button>
+        <button class="btn-action" id="smsBtn">💬 TEXT IT</button>
+      </div>
+    </div>
+
     <button class="play-again" id="playAgain">PLAY AGAIN</button>
   </div>
 
@@ -885,34 +985,59 @@
   const answerName = document.getElementById('answerName');
   const answerFlavor = document.getElementById('answerFlavor');
 
-  function renderGuesses() {
-    guessBody.innerHTML = '';
-    guesses.forEach(g => {
-      const tr = document.createElement('tr');
-      const fields = ['name','type','origin','caliber','action','capacity','year','role'];
-      fields.forEach(f => {
-        const td = document.createElement('td');
-        const cell = document.createElement('div');
-        if (f === 'name') {
-          td.classList.add('name-cell');
-          cell.classList.add('cell');
-          cell.textContent = g.name.value;
-          cell.style.background = 'transparent';
-        } else {
-          cell.className = 'cell ' + g[f].status;
-          cell.textContent = g[f].value;
-          if (g[f].arrow) {
-            const a = document.createElement('span');
-            a.className = 'arrow';
-            a.textContent = ' ' + g[f].arrow;
-            cell.appendChild(a);
-          }
+  // Build a single guess row. Pure function — doesn't touch the DOM tree,
+  // so we can use it both for appending one row and for full reset rebuilds.
+  function buildGuessRow(g) {
+    const tr = document.createElement('tr');
+    const fields = ['name','type','origin','caliber','action','capacity','year','role'];
+    fields.forEach(f => {
+      const td = document.createElement('td');
+      const cell = document.createElement('div');
+      if (f === 'name') {
+        td.classList.add('name-cell');
+        cell.classList.add('cell');
+        cell.textContent = g.name.value;
+        cell.style.background = 'transparent';
+      } else {
+        cell.className = 'cell ' + g[f].status;
+        cell.textContent = g[f].value;
+        if (g[f].arrow) {
+          const a = document.createElement('span');
+          a.className = 'arrow';
+          a.textContent = ' ' + g[f].arrow;
+          cell.appendChild(a);
         }
-        td.appendChild(cell);
-        tr.appendChild(td);
-      });
-      guessBody.appendChild(tr);
+      }
+      td.appendChild(cell);
+      tr.appendChild(td);
     });
+    return tr;
+  }
+
+  // Prepend ONE new guess row (newest on top) with its flip-in animation,
+  // without touching any rows already in the table.
+  function appendGuessRow(g) {
+    const tr = buildGuessRow(g);
+    tr.classList.add('new-row');
+    // insertBefore with firstChild = prepend; works whether tbody is empty or not
+    guessBody.insertBefore(tr, guessBody.firstChild);
+
+    // Remove the animation-trigger class once the longest-delayed cell
+    // has finished animating, so the row sits statically afterwards.
+    // (8 cells * 0.1s stagger + 0.5s animation = ~1.3s; round up.)
+    setTimeout(() => tr.classList.remove('new-row'), 1400);
+
+    shotsLeftEl.textContent = MAX_GUESSES - guesses.length;
+  }
+
+  // Full rebuild — used only when resetting the board (Play Again).
+  // Iterates in reverse so the newest guess sits at the top of the table,
+  // matching the live append order.
+  function rebuildGuessTable() {
+    guessBody.innerHTML = '';
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      guessBody.appendChild(buildGuessRow(guesses[i]));
+    }
     shotsLeftEl.textContent = MAX_GUESSES - guesses.length;
   }
 
@@ -939,7 +1064,108 @@
     }
     answerName.textContent = fullName(answer);
     answerFlavor.textContent = answer.flavor || '';
+    buildShareGrid(won);
   }
+
+  // Build the visual share grid shown in the endgame panel.
+  // Each row = one guess. Each cell = one of the 7 scored attributes
+  // (we exclude the firearm-name column since it's never colored).
+  const SHARE_FIELDS = ['type','origin','caliber','action','capacity','year','role'];
+
+  function buildShareGrid(won) {
+    const grid = document.getElementById('shareGrid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${SHARE_FIELDS.length}, 1fr)`;
+
+    // Render one row per guess actually made, newest on top to match the table
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      const g = guesses[i];
+      SHARE_FIELDS.forEach(f => {
+        const cell = document.createElement('div');
+        cell.className = 'share-cell ' + g[f].status;
+        grid.appendChild(cell);
+      });
+    }
+  }
+
+  // Build the plain-text share message that gets copied to clipboard.
+  // Uses square emoji so it renders correctly in iMessage/Android SMS/social.
+  // Rows are ordered newest-on-top to match what the player sees on screen.
+  function buildShareText(won) {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
+    const lines = [`GUNDLE ${date} — ${score}`, ''];
+
+    const emojiMap = { hit: '🟩', partial: '🟨', miss: '⬛' };
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      const g = guesses[i];
+      const row = SHARE_FIELDS.map(f => emojiMap[g[f].status] || '⬛').join('');
+      lines.push(row);
+    }
+
+    lines.push('');
+    lines.push('Play at: ' + (window.location.origin && window.location.origin !== 'null'
+      ? window.location.origin + window.location.pathname.replace(/[^/]*$/, '')
+      : 'gundle.app'));
+
+    return lines.join('\n');
+  }
+
+  // Copy to clipboard (with fallback for older browsers / file:// pages)
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) { /* fall through to legacy method */ }
+
+    // Fallback: hidden textarea + execCommand
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      document.body.removeChild(ta);
+      return false;
+    }
+  }
+
+  // COPY button
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const won = endgame.classList.contains('win');
+    const text = buildShareText(won);
+    const btn = document.getElementById('copyBtn');
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      btn.classList.add('copied');
+      btn.textContent = '✓ COPIED!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋 COPY RESULT';
+      }, 2200);
+    } else {
+      showToast('Copy failed — long-press to copy');
+    }
+  });
+
+  // SMS button — opens the device's messaging app pre-filled
+  document.getElementById('smsBtn').addEventListener('click', () => {
+    const won = endgame.classList.contains('win');
+    const text = buildShareText(won);
+    // sms: URI works on iOS and Android; the "?body=" param is widely supported.
+    // iOS prefers "&body=" after a recipient, but with no recipient "?body=" works.
+    const sms = 'sms:?&body=' + encodeURIComponent(text);
+    window.location.href = sms;
+  });
 
   const brandBtn  = document.getElementById('brandBtn');
   const brandList = document.getElementById('brandList');
@@ -1134,7 +1360,7 @@
     modelBtn.disabled = true;
     guessBtn.disabled = true;
 
-    renderGuesses();
+    appendGuessRow(result);
 
     if (wasMatch) {
       setTimeout(() => endGame(true), 900);
@@ -1156,12 +1382,12 @@
     modelBtn.textContent = 'Pick a manufacturer first…';
     modelBtn.classList.add('placeholder');
     guessBtn.disabled = true;
-    renderGuesses();
+    rebuildGuessTable();
     showToast('New target locked');
   });
 
   answer = pickAnswer();
-  renderGuesses();
+  rebuildGuessTable();
 </script>
 
 </body>
