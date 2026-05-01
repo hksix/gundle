@@ -550,23 +550,44 @@
     color: #fff;
   }
 
-  .play-again {
-    background: transparent;
-    border: 1px solid var(--brass);
-    color: var(--brass-bright);
-    font-family: 'Oswald', sans-serif;
-    font-weight: 500;
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    padding: 12px 28px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.15s;
+  /* Countdown shown on the endgame panel telling the player when
+     tomorrow's puzzle unlocks. */
+  .next-puzzle {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
   }
 
-  .play-again:hover {
-    background: var(--brass);
-    color: #1a1410;
+  .next-puzzle-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .next-puzzle-time {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: 0.1em;
+    color: var(--brass-bright);
+  }
+
+  /* Banner shown at the top of the page if the player already finished today. */
+  .already-played-banner {
+    background: var(--panel-2);
+    border: 1px solid var(--brass);
+    border-left-width: 3px;
+    padding: 12px 18px;
+    margin-bottom: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--brass-bright);
+    text-transform: uppercase;
+    text-align: center;
   }
 
   footer {
@@ -730,7 +751,10 @@
       </div>
     </div>
 
-    <button class="play-again" id="playAgain">PLAY AGAIN</button>
+    <div class="next-puzzle">
+      <div class="next-puzzle-label">NEXT PUZZLE IN</div>
+      <div class="next-puzzle-time" id="nextPuzzleTime">--:--:--</div>
+    </div>
   </div>
 
   </div><!-- /#gameRoot -->
@@ -773,9 +797,24 @@
       if (loadingEl) loadingEl.style.display = 'none';
       document.getElementById('gameRoot').style.display = '';
 
-      // Now that data is in, pick the daily answer and reveal the table
+      // Lock in today's answer and check for a saved game.
       answer = pickAnswer();
-      rebuildGuessTable();
+
+      const saved = loadProgress();
+      if (saved) {
+        // Restore previous guesses for today.
+        guesses = saved.guesses || [];
+        rebuildGuessTable();
+
+        if (saved.finished) {
+          // Already finished today — lock the inputs and show the
+          // endgame panel without animation.
+          endGame(saved.won, /*restoring=*/true);
+        }
+      } else {
+        // Fresh game — empty board.
+        rebuildGuessTable();
+      }
     } catch (err) {
       console.error('Failed to load guns.json:', err);
       if (loadingEl) {
@@ -800,16 +839,65 @@
 
   function fullName(g) { return g.manufacturer + ' ' + g.model; }
 
+  // ---------- DATE / DAILY-PUZZLE LOGIC ----------
+
+  // YYYY-MM-DD in the player's LOCAL timezone. Used as the dictionary
+  // key for "today's saved game" in localStorage. Local-time means the
+  // puzzle resets at the player's local midnight, like Wordle.
+  function getDateKey(d) {
+    d = d || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // Pick today's gun deterministically from the date key. Same answer
+  // for every player, every browser, every refresh — until midnight.
   function pickAnswer() {
-    const today = new Date();
-    const seed = today.getFullYear() * 10000 + (today.getMonth()+1) * 100 + today.getDate();
+    const key = getDateKey();
+    const [y, m, d] = key.split('-').map(Number);
+    const seed = y * 10000 + m * 100 + d;
     return GUNS[seed % GUNS.length];
   }
 
-  function pickRandomAnswer() {
-    return GUNS[Math.floor(Math.random() * GUNS.length)];
+  // ---------- LOCALSTORAGE PERSISTENCE ----------
+  // We save the player's progress for today so a refresh/return-visit
+  // restores their board, and so we can lock them out after they finish.
+  // Schema: { dateKey, guesses: [scored guess objects], finished: bool, won: bool }
+
+  const STORAGE_KEY = 'gundle:state';
+
+  function saveProgress(finished, won) {
+    try {
+      const state = {
+        dateKey: getDateKey(),
+        guesses: guesses,                  // already-scored guess objects
+        finished: !!finished,
+        won: !!won,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Private browsing / disabled storage — fail silently.
+      // The game still works, just won't persist across reloads.
+    }
   }
 
+  function loadProgress() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const state = JSON.parse(raw);
+      // If the saved state is from a previous day, ignore it. The puzzle
+      // has rolled over and we want a fresh board.
+      if (state.dateKey !== getDateKey()) return null;
+      return state;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ---------- SCORING ----------
   function scoreGuess(guess, target) {
     const r = {};
     r.name = { value: fullName(guess), status: 'name' };
@@ -917,7 +1005,7 @@
     showToast._t = setTimeout(() => t.classList.remove('show'), 1800);
   }
 
-  function endGame(won) {
+  function endGame(won, restoring) {
     brandBtn.disabled = true;
     modelBtn.disabled = true;
     guessBtn.disabled = true;
@@ -933,6 +1021,66 @@
     answerName.textContent = fullName(answer);
     answerFlavor.textContent = answer.flavor || '';
     buildShareGrid(won);
+
+    // Persist the finished state so refreshes show the result, and so
+    // the player can't restart the game until midnight.
+    saveProgress(/*finished=*/true, won);
+
+    // Show the "already played today" banner above the input area.
+    showAlreadyPlayedBanner();
+
+    // Start the countdown to the next puzzle.
+    startCountdown();
+
+    // If restoring after a refresh, skip the rise-in animation since
+    // the panel was already "there" — feels weird otherwise.
+    if (restoring) {
+      // Force-show without the keyframe animation by re-flowing.
+      endgame.style.animation = 'none';
+      // Reading offsetHeight forces a synchronous reflow before we
+      // unset the override.
+      void endgame.offsetHeight;
+      endgame.style.animation = '';
+    }
+  }
+
+  // ---------- COUNTDOWN TO NEXT PUZZLE ----------
+  let countdownInterval = null;
+
+  function startCountdown() {
+    if (countdownInterval) return; // already running
+    const tick = () => {
+      const now = new Date();
+      // "Tomorrow at local midnight"
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const diff = next - now;
+      const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+      const m = String(Math.floor(diff / 60000) % 60).padStart(2, '0');
+      const s = String(Math.floor(diff / 1000) % 60).padStart(2, '0');
+      const el = document.getElementById('nextPuzzleTime');
+      if (el) el.textContent = `${h}:${m}:${s}`;
+
+      // If we just rolled past midnight, force a reload so the player
+      // gets the new puzzle (rather than sitting on a stale page).
+      if (diff <= 0) {
+        clearInterval(countdownInterval);
+        location.reload();
+      }
+    };
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+  }
+
+  function showAlreadyPlayedBanner() {
+    if (document.getElementById('alreadyPlayedBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'alreadyPlayedBanner';
+    banner.className = 'already-played-banner';
+    banner.textContent = "You've completed today's puzzle — see you tomorrow.";
+    // Insert it before the input panel so the input still appears
+    // (disabled) below it, preserving context.
+    const inputPanel = document.querySelector('.input-panel');
+    inputPanel.parentNode.insertBefore(banner, inputPanel);
   }
 
   // Build the visual share grid shown in the endgame panel.
@@ -1230,28 +1378,19 @@
 
     appendGuessRow(result);
 
+    // Save progress after every guess so a refresh restores the board.
     if (wasMatch) {
+      // Save win immediately so even if endGame is delayed, the state
+      // is locked in.
+      saveProgress(/*finished=*/true, /*won=*/true);
       setTimeout(() => endGame(true), 900);
     } else if (guesses.length >= MAX_GUESSES) {
+      saveProgress(/*finished=*/true, /*won=*/false);
       setTimeout(() => endGame(false), 900);
+    } else {
+      // Mid-game save — not finished, no won/lost yet.
+      saveProgress(/*finished=*/false, /*won=*/false);
     }
-  });
-
-  document.getElementById('playAgain').addEventListener('click', () => {
-    answer = pickRandomAnswer();
-    guesses = [];
-    selectedBrand = null;
-    selectedModel = null;
-    endgame.classList.remove('show');
-    brandBtn.disabled = false;
-    brandBtn.textContent = 'Select a manufacturer…';
-    brandBtn.classList.add('placeholder');
-    modelBtn.disabled = true;
-    modelBtn.textContent = 'Pick a manufacturer first…';
-    modelBtn.classList.add('placeholder');
-    guessBtn.disabled = true;
-    rebuildGuessTable();
-    showToast('New target locked');
   });
 
   // Kick off data load. Game gets initialized inside loadData() once
