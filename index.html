@@ -9,22 +9,32 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Bitter:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0e0d0b;
-    --bg-2: #15130f;
-    --panel: #1c1916;
-    --panel-2: #221f1a;
-    --ink: #ece4d4;
-    --ink-dim: #a89e89;
-    --ink-faint: #6b6354;
-    --rule: #2a2620;
-    --brass: #b08a3e;
-    --brass-bright: #d4a94a;
-    --hit: #4a7c3a;
-    --hit-2: #5a9444;
-    --partial: #c89a3a;
-    --partial-2: #e0b34d;
-    --miss: #3a3530;
-    --higher: #8e3a2b;
+    /* PARCHMENT + WALNUT palette — feels like an old gunsmith's
+       reference book. Brass accents preserved from the dark version. */
+    --bg:        #f0e7d2;   /* deep parchment — page background */
+    --bg-2:      #f5edd9;   /* lighter parchment — subtle panels */
+    --panel:     #faf3e1;   /* near-white parchment — main surfaces */
+    --panel-2:   #ede2c5;   /* aged paper — secondary surfaces, headers */
+    --ink:       #2a1f12;   /* deep walnut — primary text */
+    --ink-dim:   #6b4f33;   /* mid walnut — secondary text */
+    --ink-faint: #9a7d5d;   /* faded walnut — tertiary, placeholders */
+    --rule:      #c9b88f;   /* aged-brass border line */
+    --rule-soft: #ddc9a0;   /* softer divider for inside cards */
+    --brass:        #a37c2c;
+    --brass-bright: #c89a3a;  /* brighter — used for gradient highlights */
+    --brass-deep:   #6e5018;  /* darker — used for accent text/labels on parchment */
+    /* Result colors retuned for a light background — muted, earthy.
+       Keep enough saturation that the share grid still reads. */
+    --hit:       #4a6b2c;   /* sage / olive green */
+    --hit-2:     #6b8e3d;   /* lighter sage for highlights */
+    --hit-text:  #ffffff;   /* white text reads on sage */
+    --partial:   #b8851f;   /* mustard / amber */
+    --partial-2: #d6a138;
+    --partial-text: #2a1f12;/* walnut text on amber */
+    --miss:      #b8a685;   /* faded warm gray */
+    --miss-2:    #cebd9a;
+    --miss-text: #4a3826;   /* dark walnut on faded gray */
+    --higher:    #8e3a2b;   /* burnt sienna for "out of ammo" */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,22 +49,24 @@
 
   body {
     background:
-      radial-gradient(ellipse at top, #1a1612 0%, transparent 60%),
-      radial-gradient(ellipse at bottom right, #1a1410 0%, transparent 50%),
+      radial-gradient(ellipse at top, #f8f0db 0%, transparent 60%),
+      radial-gradient(ellipse at bottom right, #ead9b3 0%, transparent 50%),
       var(--bg);
     background-attachment: fixed;
     padding: 24px 16px 80px;
     position: relative;
   }
 
+  /* Faint paper grain to keep the parchment feel from being flat/digital. */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.06;
+    opacity: 0.08;
     z-index: 1;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
   }
 
   .wrap {
@@ -87,11 +99,12 @@
     font-size: clamp(48px, 9vw, 84px);
     letter-spacing: 0.06em;
     line-height: 0.9;
-    background: linear-gradient(180deg, var(--ink) 0%, var(--brass-bright) 50%, var(--brass) 100%);
+    /* Walnut → brass → deeper walnut, reads richly on parchment. */
+    background: linear-gradient(180deg, var(--ink) 0%, var(--brass) 55%, #5a3a18 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    text-shadow: 0 1px 0 rgba(255,250,230,0.35);
   }
 
   .tagline {
@@ -151,7 +164,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.25em;
-    color: var(--brass-bright);
+    color: var(--brass-deep);
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -210,7 +223,7 @@
     overflow-y: auto;
     z-index: 30;
     display: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(80, 50, 20, 0.18);
   }
 
   .dd-list.open { display: block; }
@@ -246,7 +259,7 @@
   .dd-item:last-child { border-bottom: none; }
   .dd-item:hover, .dd-item.active {
     background: var(--rule);
-    color: var(--brass-bright);
+    color: var(--brass-deep);
   }
 
   .dd-item.disabled {
@@ -270,9 +283,9 @@
   }
 
   #guessBtn {
-    background: linear-gradient(180deg, #2a2620 0%, #1a1714 100%);
-    border: 1px solid var(--brass);
-    color: var(--brass-bright);
+    background: linear-gradient(180deg, var(--brass) 0%, #8a6422 100%);
+    border: 1px solid #6b4a14;
+    color: #fff8e0;
     font-family: 'Oswald', sans-serif;
     font-weight: 600;
     font-size: 14px;
@@ -282,122 +295,168 @@
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.15s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
   }
 
   #guessBtn:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--brass) 0%, #8a6a2e 100%);
-    color: #1a1410;
+    background: linear-gradient(180deg, var(--brass-bright) 0%, var(--brass) 100%);
   }
 
-  #guessBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #guessBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: linear-gradient(180deg, var(--miss-2) 0%, var(--miss) 100%);
+    border-color: var(--rule);
+    color: var(--ink-faint);
+  }
 
-  .table-wrap {
-    overflow-x: auto;
-    background: var(--panel);
-    border: 1px solid var(--rule);
+  /* ===== GUESS CARDS — replaces the old <table> layout =====
+     Each guess is a self-contained card. Inside, the gun name sits
+     across the top, and the 7 scored attributes live in a chip grid
+     below. Stacks vertically on every viewport — no horizontal scroll. */
+
+  .guess-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 24px;
   }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 720px;
+  .guess-card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset,
+                0 2px 6px rgba(80, 50, 20, 0.06);
+    overflow: hidden;
   }
 
-  thead {
-    background: linear-gradient(180deg, #221f1a 0%, #15130f 100%);
-    border-bottom: 2px solid var(--brass);
-  }
-
-  th {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 500;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--brass-bright);
-    padding: 14px 10px;
-    text-align: center;
-    border-right: 1px solid var(--rule);
-  }
-
-  th:last-child { border-right: none; }
-
-  td {
-    padding: 0;
-    border-right: 1px solid rgba(0,0,0,0.3);
-    border-bottom: 1px solid rgba(0,0,0,0.3);
-    text-align: center;
-    height: 64px;
-  }
-
-  td:last-child { border-right: none; }
-
-  .cell {
-    width: 100%;
-    height: 100%;
+  /* Card header — gun name + brand */
+  .guess-card-header {
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--rule-soft);
+    border-left: 4px solid var(--brass);
+    padding: 10px 16px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 4px;
+    gap: 2px;
+  }
+
+  .guess-card-brand {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: #f5ecd9;
-    font-weight: 500;
-    line-height: 1.2;
-  }
-
-  /* Only animate cells in a freshly-added row. Once the row's animation
-     finishes the .new-row class is removed so future re-renders won't
-     re-trigger it. */
-  tr.new-row .cell {
-    animation: flip 0.5s ease-out backwards;
-  }
-
-  tr.new-row td:nth-child(1) .cell { animation-delay: 0.0s; }
-  tr.new-row td:nth-child(2) .cell { animation-delay: 0.1s; }
-  tr.new-row td:nth-child(3) .cell { animation-delay: 0.2s; }
-  tr.new-row td:nth-child(4) .cell { animation-delay: 0.3s; }
-  tr.new-row td:nth-child(5) .cell { animation-delay: 0.4s; }
-  tr.new-row td:nth-child(6) .cell { animation-delay: 0.5s; }
-  tr.new-row td:nth-child(7) .cell { animation-delay: 0.6s; }
-  tr.new-row td:nth-child(8) .cell { animation-delay: 0.7s; }
-
-  @keyframes flip {
-    0% { transform: rotateX(90deg); opacity: 0; }
-    100% { transform: rotateX(0); opacity: 1; }
-  }
-
-  .cell.hit {
-    background: linear-gradient(180deg, var(--hit-2) 0%, var(--hit) 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -2px 0 rgba(0,0,0,0.3);
-  }
-
-  .cell.partial {
-    background: linear-gradient(180deg, var(--partial-2) 0%, var(--partial) 100%);
-    color: #2a1f0a;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.3);
-  }
-
-  .cell.miss {
-    background: linear-gradient(180deg, #45403a 0%, var(--miss) 100%);
+    font-size: 10px;
+    letter-spacing: 0.25em;
     color: var(--ink-dim);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 0 rgba(0,0,0,0.3);
+    text-transform: uppercase;
   }
 
-  .arrow { font-size: 14px; margin-left: 2px; }
-
-  .name-cell {
-    background: var(--panel-2);
-    color: var(--ink);
+  .guess-card-model {
     font-family: 'Oswald', sans-serif;
-    font-weight: 500;
-    font-size: 13px;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 0 12px;
-    border-left: 3px solid var(--brass);
+  }
+
+  /* Attribute chip grid inside each card.
+     Desktop: 4 columns (4 + 3 wraps cleanly).
+     Tablet: 3 columns. Mobile: 2 columns. */
+  .guess-card-chips {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px;
+  }
+
+  @media (max-width: 720px) {
+    .guess-card-chips { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .guess-card-chips { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    border-radius: 3px;
+    padding: 8px 10px;
+    min-height: 52px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    line-height: 1.25;
+    text-align: left;
+    border: 1px solid transparent;
+  }
+
+  .chip-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+
+  .chip-value {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chip .arrow {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* Status colors — earthy, light-bg-friendly. */
+  .chip.hit {
+    background: var(--hit-2);
+    color: var(--hit-text);
+    border-color: var(--hit);
+  }
+
+  .chip.partial {
+    background: var(--partial-2);
+    color: var(--partial-text);
+    border-color: var(--partial);
+  }
+
+  .chip.miss {
+    background: var(--miss-2);
+    color: var(--miss-text);
+    border-color: var(--miss);
+  }
+
+  /* Flip animation on the chips of newly-added cards only.
+     Stagger left-to-right, top-to-bottom by chip index. */
+  .guess-card.new-card .chip {
+    animation: chipFlip 0.5s ease-out backwards;
+  }
+  .guess-card.new-card .chip:nth-child(1) { animation-delay: 0.00s; }
+  .guess-card.new-card .chip:nth-child(2) { animation-delay: 0.08s; }
+  .guess-card.new-card .chip:nth-child(3) { animation-delay: 0.16s; }
+  .guess-card.new-card .chip:nth-child(4) { animation-delay: 0.24s; }
+  .guess-card.new-card .chip:nth-child(5) { animation-delay: 0.32s; }
+  .guess-card.new-card .chip:nth-child(6) { animation-delay: 0.40s; }
+  .guess-card.new-card .chip:nth-child(7) { animation-delay: 0.48s; }
+
+  /* Whole-card slide-in on top of the chip flips */
+  .guess-card.new-card {
+    animation: cardSlideIn 0.35s ease-out backwards;
+  }
+
+  @keyframes cardSlideIn {
+    0%   { opacity: 0; transform: translateY(-12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes chipFlip {
+    0%   { transform: rotateX(90deg); opacity: 0; }
+    100% { transform: rotateX(0);     opacity: 1; }
   }
 
   .status-bar {
@@ -413,7 +472,7 @@
   }
 
   .status-bar .guesses-left strong {
-    color: var(--brass-bright);
+    color: var(--brass);
     font-size: 14px;
   }
 
@@ -442,14 +501,14 @@
     margin-bottom: 8px;
   }
 
-  .endgame.win  h2 { color: var(--hit-2); text-shadow: 0 0 30px rgba(90,148,68,0.4); }
+  .endgame.win  h2 { color: var(--hit); }
   .endgame.lose h2 { color: var(--higher); }
 
   .endgame .answer-name {
     font-family: 'Oswald', sans-serif;
     font-weight: 600;
     font-size: 22px;
-    color: var(--brass-bright);
+    color: var(--brass);
     margin: 14px 0 6px;
     letter-spacing: 0.05em;
   }
@@ -479,7 +538,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.3em;
-    color: var(--brass-bright);
+    color: var(--brass-deep);
     text-transform: uppercase;
     margin-bottom: 12px;
   }
@@ -499,7 +558,7 @@
 
   .share-cell.hit     { background: var(--hit-2); }
   .share-cell.partial { background: var(--partial-2); }
-  .share-cell.miss    { background: #45403a; }
+  .share-cell.miss    { background: var(--miss); }
   .share-cell.empty   { background: transparent; border: 1px dashed var(--rule); }
 
   @media (max-width: 480px) {
@@ -516,7 +575,7 @@
   .btn-action {
     background: transparent;
     border: 1px solid var(--brass);
-    color: var(--brass-bright);
+    color: var(--brass-deep);
     font-family: 'Oswald', sans-serif;
     font-weight: 500;
     font-size: 13px;
@@ -532,12 +591,12 @@
 
   .btn-action:hover {
     background: var(--brass);
-    color: #1a1410;
+    color: #fff8e0;
   }
 
   .btn-action.primary {
     background: linear-gradient(180deg, var(--brass) 0%, #8a6a2e 100%);
-    color: #1a1410;
+    color: #fff8e0;
   }
 
   .btn-action.primary:hover {
@@ -572,7 +631,7 @@
     font-weight: 600;
     font-size: 28px;
     letter-spacing: 0.1em;
-    color: var(--brass-bright);
+    color: var(--brass-deep);
   }
 
   /* Banner shown at the top of the page if the player already finished today. */
@@ -585,7 +644,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     letter-spacing: 0.1em;
-    color: var(--brass-bright);
+    color: var(--brass-deep);
     text-transform: uppercase;
     text-align: center;
   }
@@ -608,10 +667,7 @@
     .intro { padding: 14px 16px; font-size: 13px; }
     .selectors { grid-template-columns: 1fr; gap: 12px; }
     #guessBtn { width: 100%; }
-    th { font-size: 9px; padding: 10px 4px; letter-spacing: 0.1em; }
-    .cell { font-size: 10px; }
-    .name-cell { font-size: 11px; padding: 0 8px; }
-    td { height: 56px; }
+    .guess-card-model { font-size: 16px; }
     .legend { font-size: 10px; gap: 10px; }
   }
 
@@ -681,13 +737,13 @@
 
   <div class="intro">
     Pick a <strong>manufacturer</strong>, then a <strong>model</strong>, and hit FIRE. You have <strong>6 tries</strong>. After each guess, every attribute is colored:
-    <span style="color:var(--hit-2);font-weight:600">green</span> = exact match,
-    <span style="color:var(--partial-2);font-weight:600">amber</span> = same family,
+    <span style="color:var(--hit);font-weight:600">green</span> = exact match,
+    <span style="color:var(--partial);font-weight:600">amber</span> = same family,
     gray = wrong. Numbers show <strong>↑</strong> if the answer is higher, <strong>↓</strong> if lower.
     <div class="legend">
-      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,var(--hit-2),var(--hit))"></span>EXACT</div>
-      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,var(--partial-2),var(--partial))"></span>CLOSE</div>
-      <div class="legend-item"><span class="swatch" style="background:linear-gradient(180deg,#45403a,var(--miss))"></span>WRONG</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--hit-2)"></span>EXACT</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--partial-2)"></span>CLOSE</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--miss-2)"></span>WRONG</div>
       <div class="legend-item">↑ HIGHER &nbsp; ↓ LOWER</div>
     </div>
   </div>
@@ -719,23 +775,7 @@
     </div>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Firearm</th>
-          <th>Type</th>
-          <th>Origin</th>
-          <th>Caliber</th>
-          <th>Action</th>
-          <th>Capacity</th>
-          <th>Era</th>
-          <th>Role</th>
-        </tr>
-      </thead>
-      <tbody id="guessBody"></tbody>
-    </table>
-  </div>
+  <div class="guess-cards" id="guessBody"></div>
 
   <div class="endgame" id="endgame">
     <h2 id="endTitle"></h2>
@@ -900,7 +940,14 @@
   // ---------- SCORING ----------
   function scoreGuess(guess, target) {
     const r = {};
-    r.name = { value: fullName(guess), status: 'name' };
+    // Keep the joined name for the share text and table-style display,
+    // and split components for the new card header.
+    r.name = {
+      value: fullName(guess),
+      manufacturer: guess.manufacturer,
+      model: guess.model,
+      status: 'name'
+    };
 
     function cat(field, families) {
       if (guess[field] === target[field]) return { value: guess[field], status: 'hit' };
@@ -941,58 +988,105 @@
   const answerName = document.getElementById('answerName');
   const answerFlavor = document.getElementById('answerFlavor');
 
-  // Build a single guess row. Pure function — doesn't touch the DOM tree,
-  // so we can use it both for appending one row and for full reset rebuilds.
-  function buildGuessRow(g) {
-    const tr = document.createElement('tr');
-    const fields = ['name','type','origin','caliber','action','capacity','year','role'];
-    fields.forEach(f => {
-      const td = document.createElement('td');
-      const cell = document.createElement('div');
-      if (f === 'name') {
-        td.classList.add('name-cell');
-        cell.classList.add('cell');
-        cell.textContent = g.name.value;
-        cell.style.background = 'transparent';
-      } else {
-        cell.className = 'cell ' + g[f].status;
-        cell.textContent = g[f].value;
-        if (g[f].arrow) {
-          const a = document.createElement('span');
-          a.className = 'arrow';
-          a.textContent = ' ' + g[f].arrow;
-          cell.appendChild(a);
-        }
+  // Pretty labels for each scored field, shown above the value inside each chip.
+  const CHIP_FIELDS = [
+    { key: 'type',     label: 'Type'     },
+    { key: 'origin',   label: 'Origin'   },
+    { key: 'caliber',  label: 'Caliber'  },
+    { key: 'action',   label: 'Action'   },
+    { key: 'capacity', label: 'Capacity' },
+    { key: 'year',     label: 'Year'     },
+    { key: 'role',     label: 'Role'     },
+  ];
+
+  // Build one full guess card (header + chip grid). Pure function —
+  // returns a detached element ready to be inserted.
+  function buildGuessCard(g) {
+    const card = document.createElement('article');
+    card.className = 'guess-card';
+
+    // Header: brand pretitle + model name. We pull manufacturer/model
+    // from the scored result if present (new format), otherwise we
+    // fall back to splitting g.name.value (legacy localStorage saves).
+    const header = document.createElement('div');
+    header.className = 'guess-card-header';
+
+    let brand = g.name.manufacturer;
+    let model = g.name.model;
+    if (!brand || !model) {
+      // Legacy fallback: split "Manufacturer Model" on first space.
+      const parts = (g.name.value || '').split(' ');
+      brand = parts[0] || '';
+      model = parts.slice(1).join(' ') || g.name.value;
+    }
+
+    const brandEl = document.createElement('div');
+    brandEl.className = 'guess-card-brand';
+    brandEl.textContent = brand;
+    header.appendChild(brandEl);
+
+    const modelEl = document.createElement('div');
+    modelEl.className = 'guess-card-model';
+    modelEl.textContent = model;
+    header.appendChild(modelEl);
+
+    card.appendChild(header);
+
+    // Chip grid: one chip per scored attribute.
+    const chips = document.createElement('div');
+    chips.className = 'guess-card-chips';
+
+    CHIP_FIELDS.forEach(({ key, label }) => {
+      const chip = document.createElement('div');
+      const r = g[key];
+      chip.className = 'chip ' + r.status;
+
+      const lbl = document.createElement('div');
+      lbl.className = 'chip-label';
+      lbl.textContent = label;
+      chip.appendChild(lbl);
+
+      const val = document.createElement('div');
+      val.className = 'chip-value';
+      val.textContent = r.value;
+      if (r.arrow) {
+        const a = document.createElement('span');
+        a.className = 'arrow';
+        a.textContent = r.arrow;
+        val.appendChild(a);
       }
-      td.appendChild(cell);
-      tr.appendChild(td);
+      chip.appendChild(val);
+
+      chips.appendChild(chip);
     });
-    return tr;
+
+    card.appendChild(chips);
+    return card;
   }
 
-  // Prepend ONE new guess row (newest on top) with its flip-in animation,
-  // without touching any rows already in the table.
+  // Prepend ONE new guess card (newest on top) with its flip-in animation,
+  // without touching any cards already on the page.
   function appendGuessRow(g) {
-    const tr = buildGuessRow(g);
-    tr.classList.add('new-row');
-    // insertBefore with firstChild = prepend; works whether tbody is empty or not
-    guessBody.insertBefore(tr, guessBody.firstChild);
+    const card = buildGuessCard(g);
+    card.classList.add('new-card');
+    // Newest on top — insertBefore(_, firstChild) prepends safely
+    // even when the container is empty.
+    guessBody.insertBefore(card, guessBody.firstChild);
 
-    // Remove the animation-trigger class once the longest-delayed cell
-    // has finished animating, so the row sits statically afterwards.
-    // (8 cells * 0.1s stagger + 0.5s animation = ~1.3s; round up.)
-    setTimeout(() => tr.classList.remove('new-row'), 1400);
+    // Strip the animation-trigger class once the longest-delayed chip
+    // has finished animating (~1.0s including the card slide-in).
+    setTimeout(() => card.classList.remove('new-card'), 1100);
 
     shotsLeftEl.textContent = MAX_GUESSES - guesses.length;
   }
 
-  // Full rebuild — used only when resetting the board (Play Again).
-  // Iterates in reverse so the newest guess sits at the top of the table,
-  // matching the live append order.
+  // Full rebuild — used on initial load and when restoring saved state.
+  // Iterates in reverse so newest sits on top, matching live append order.
+  // Adds no animation classes, so old guesses appear instantly.
   function rebuildGuessTable() {
     guessBody.innerHTML = '';
     for (let i = guesses.length - 1; i >= 0; i--) {
-      guessBody.appendChild(buildGuessRow(guesses[i]));
+      guessBody.appendChild(buildGuessCard(guesses[i]));
     }
     shotsLeftEl.textContent = MAX_GUESSES - guesses.length;
   }
