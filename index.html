@@ -810,30 +810,112 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ----- DATA STATE (populated from fetch on page load) -----
+  // =========================================================================
+  // SUPABASE CONFIGURATION
+  // To add or edit guns:
+  //   1. Log into supabase.com
+  //   2. Open the "guns" table
+  //   3. Insert / edit / delete rows
+  //   4. Refresh playgundle.com — changes are live, no redeploy needed
+  // =========================================================================
+  const SUPABASE_URL = 'https://cqhhqderxjxseonngogz.supabase.co';
+  const SUPABASE_ANON_KEY =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxaGhxZGVyeGp4c2Vvbm5nb2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTc5NTQsImV4cCI6MjA5MzE3Mzk1NH0.ILLrQZRwD1GZykZa-3uz8ugxV-lX6rHUxCldRGjDAqw';
+
+  // ----- DATA STATE -----
   let GUNS = [];
-  let TYPE_FAMILIES = {};
-  let ORIGIN_REGIONS = {};
-  let CALIBER_FAMILIES = {};
-  let ACTION_FAMILIES = {};
-  let ROLE_FAMILIES = {};
   let DATA_READY = false;
 
-  // Fetch the firearm database. Lives in guns.json next to this file.
-  // The browser will request it as soon as the page loads.
+  // Category-family lookups. These describe which values count as a
+  // "partial match" with which other values (e.g., guessing a 5.56x45mm
+  // rifle when the answer was 7.62x39mm — both intermediate-rifle, so
+  // amber/close instead of gray/wrong). These don't depend on the gun
+  // list, so they live here in code rather than in the database.
+  // To add a new caliber/action/origin, edit the relevant block below.
+  const TYPE_FAMILIES = {
+    "Rifle": "long",
+    "Shotgun": "long",
+    "Submachine Gun": "compact-auto",
+    "Pistol": "handgun",
+    "Revolver": "handgun"
+  };
+  const ORIGIN_REGIONS = {
+    "USA": "north-america",
+    "Soviet Union": "russia-bloc",
+    "Russia": "russia-bloc",
+    "Russian Empire": "russia-bloc",
+    "Germany": "western-europe",
+    "Belgium": "western-europe",
+    "France": "western-europe",
+    "Italy": "western-europe",
+    "Austria": "western-europe",
+    "UK": "western-europe",
+    "Israel": "middle-east"
+  };
+  const CALIBER_FAMILIES = {
+    "5.56x45mm": "intermediate-rifle",
+    "5.45x39mm": "intermediate-rifle",
+    "7.62x39mm": "intermediate-rifle",
+    "6.8x51mm": "intermediate-rifle",
+    ".30-30": "intermediate-rifle",
+    ".44-40": "intermediate-rifle",
+    "7.62x51mm": "full-rifle",
+    "7.62x54mmR": "full-rifle",
+    ".30-06": "full-rifle",
+    ".308 Win": "full-rifle",
+    ".303 British": "full-rifle",
+    "7.92x57mm": "full-rifle",
+    ".44 Henry": "full-rifle",
+    ".50 BMG": "anti-materiel",
+    "9x19mm": "pistol-9mm",
+    "7.62x25mm": "pistol-9mm",
+    "7.63x25mm": "pistol-9mm",
+    ".380 ACP": "pistol-9mm",
+    "5.7x28mm": "pistol-pdw",
+    ".45 ACP": "pistol-large",
+    ".45 Colt": "pistol-large",
+    ".40 S&W": "pistol-large",
+    ".44 Magnum": "pistol-magnum",
+    ".357 Magnum": "pistol-magnum",
+    ".50 AE": "pistol-magnum",
+    ".500 S&W": "pistol-magnum",
+    ".38 Special": "pistol-small",
+    ".22 LR": "rimfire",
+    "12 gauge": "shotshell"
+  };
+  const ACTION_FAMILIES = {
+    "Gas-operated": "auto-gas",
+    "Recoil-operated": "auto-recoil",
+    "Roller-delayed": "auto-delayed",
+    "Lever-delayed": "auto-delayed",
+    "Blowback": "auto-blowback",
+    "Striker-fired": "auto-blowback",
+    "Bolt-action": "manual",
+    "Lever-action": "manual",
+    "Pump-action": "manual",
+    "Single-action": "manual-revolver",
+    "Double-action": "manual-revolver"
+  };
+  const ROLE_FAMILIES = {
+    "Military": "service",
+    "Duty": "service",
+    "Hunting": "civilian",
+    "Civilian": "civilian",
+    "Concealed": "civilian"
+  };
+
+  // Fetch the firearm database from Supabase.
+  // Uses a tiny localStorage cache so repeat visits within the same
+  // day don't refetch — the gun list rarely changes.
   async function loadData() {
     const loadingEl = document.getElementById('loadingState');
     try {
-      const res = await fetch('guns.json', { cache: 'no-cache' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
+      const guns = await fetchGunsFromSupabase();
+      if (!Array.isArray(guns) || guns.length === 0) {
+        throw new Error('Empty gun list returned from database');
+      }
 
-      GUNS             = data.guns;
-      TYPE_FAMILIES    = data.categoryFamilies.type;
-      ORIGIN_REGIONS   = data.categoryFamilies.origin;
-      CALIBER_FAMILIES = data.categoryFamilies.caliber;
-      ACTION_FAMILIES  = data.categoryFamilies.action;
-      ROLE_FAMILIES    = data.categoryFamilies.role;
+      GUNS = guns;
       DATA_READY = true;
 
       // Hide loading state, reveal the game
@@ -859,7 +941,7 @@
         rebuildGuessTable();
       }
     } catch (err) {
-      console.error('Failed to load guns.json:', err);
+      console.error('Failed to load gun database:', err);
       if (loadingEl) {
         loadingEl.innerHTML =
           '<div style="color:var(--higher);font-family:Oswald,sans-serif;' +
@@ -867,10 +949,71 @@
           'JAMMED — could not load gun database</div>' +
           '<div style="color:var(--ink-dim);font-size:12px;margin-top:8px;' +
           'font-family:JetBrains Mono,monospace;">' +
-          'Make sure guns.json is hosted alongside index.html. (' +
-          err.message + ')</div>';
+          err.message + '</div>';
       }
     }
+  }
+
+  // Hits Supabase's REST endpoint for the `guns` table. Uses a 6-hour
+  // cache in localStorage so most visitors don't pay the network round-trip.
+  // If the cache is stale or unparseable, we fall back to a fresh fetch.
+  async function fetchGunsFromSupabase() {
+    const CACHE_KEY = 'gundle:guns-cache';
+    const CACHE_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+    // Try cache first
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached && cached.ts && (Date.now() - cached.ts) < CACHE_MS
+            && Array.isArray(cached.guns) && cached.guns.length > 0) {
+          // Kick off a background refresh so future loads stay current,
+          // but return the cached data immediately for fast paint.
+          refreshCacheInBackground(CACHE_KEY);
+          return cached.guns;
+        }
+      }
+    } catch (e) { /* ignore cache errors, fall through to network */ }
+
+    // No usable cache — fetch fresh
+    const guns = await fetchGunsNetwork();
+
+    // Save to cache for next time
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), guns }));
+    } catch (e) { /* private browsing — fail silently */ }
+
+    return guns;
+  }
+
+  function refreshCacheInBackground(cacheKey) {
+    // Don't await — let this run after the page is interactive
+    fetchGunsNetwork().then(guns => {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), guns }));
+      } catch (e) {}
+    }).catch(() => { /* network blip, keep using cached data */ });
+  }
+
+  async function fetchGunsNetwork() {
+    // Supabase REST: GET /rest/v1/<table>?select=*
+    // The anon key goes in BOTH the apikey header and the Authorization header
+    // (this is normal for Supabase's REST API).
+    const url = SUPABASE_URL.replace(/\/$/, '') +
+                '/rest/v1/guns?select=manufacturer,model,type,origin,caliber,' +
+                'action,capacity,year,role,flavor';
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error('Database error ' + res.status + (text ? ': ' + text.slice(0, 120) : ''));
+    }
+    return await res.json();
   }
 
 
@@ -897,11 +1040,23 @@
 
   // Pick today's gun deterministically from the date key. Same answer
   // for every player, every browser, every refresh — until midnight.
+  //
+  // Note: we sort the gun list by a stable key (manufacturer + model)
+  // before picking. This way, adding a new gun in Supabase doesn't
+  // randomly shuffle which gun is "today's" answer based on insertion
+  // order. The order is still affected if the list length crosses a
+  // boundary that changes the modulo result, but for normal additions
+  // (one or two guns at a time) it's stable.
   function pickAnswer() {
     const key = getDateKey();
     const [y, m, d] = key.split('-').map(Number);
     const seed = y * 10000 + m * 100 + d;
-    return GUNS[seed % GUNS.length];
+    const sorted = [...GUNS].sort((a, b) => {
+      const na = (a.manufacturer + ' ' + a.model).toLowerCase();
+      const nb = (b.manufacturer + ' ' + b.model).toLowerCase();
+      return na < nb ? -1 : (na > nb ? 1 : 0);
+    });
+    return sorted[seed % sorted.length];
   }
 
   // ---------- LOCALSTORAGE PERSISTENCE ----------
