@@ -1033,7 +1033,8 @@
     startCountdown();
 
     // If restoring after a refresh, skip the rise-in animation since
-    // the panel was already "there" — feels weird otherwise.
+    // the panel was already "there" — feels weird otherwise. Also skip
+    // the smooth scroll, since the player didn't just finish the puzzle.
     if (restoring) {
       // Force-show without the keyframe animation by re-flowing.
       endgame.style.animation = 'none';
@@ -1041,6 +1042,13 @@
       // unset the override.
       void endgame.offsetHeight;
       endgame.style.animation = '';
+    } else {
+      // Player just finished the puzzle — drift their view down to the
+      // result panel so the share grid + buttons are front-and-center.
+      // Wait for the endgame's rise-in animation to start before scrolling.
+      setTimeout(() => {
+        endgame.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     }
   }
 
