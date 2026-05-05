@@ -1041,16 +1041,19 @@
   // Pick today's gun deterministically from the date key. Same answer
   // for every player, every browser, every refresh — until midnight.
   //
-  // Note: we sort the gun list by a stable key (manufacturer + model)
-  // before picking. This way, adding a new gun in Supabase doesn't
-  // randomly shuffle which gun is "today's" answer based on insertion
-  // order. The order is still affected if the list length crosses a
-  // boundary that changes the modulo result, but for normal additions
-  // (one or two guns at a time) it's stable.
+  // Why we sort + stride: the sort makes the answer stable across
+  // data updates (adding a new gun in Supabase doesn't suddenly shift
+  // which alphabetically-positioned gun is "today's").
+  //
+  // Why the stride multiplier: without it, consecutive days produce
+  // consecutive indices, which lands on the same manufacturer for
+  // brands with multiple models (5 days of Colt in a row, etc).
+  // Multiplying the seed by a prime (31) that doesn't share factors
+  // with the gun count makes the daily pick hop around the list.
   function pickAnswer() {
     const key = getDateKey();
     const [y, m, d] = key.split('-').map(Number);
-    const seed = y * 10000 + m * 100 + d;
+    const seed = (y * 10000 + m * 100 + d) * 31;
     const sorted = [...GUNS].sort((a, b) => {
       const na = (a.manufacturer + ' ' + a.model).toLowerCase();
       const nb = (b.manufacturer + ' ' + b.model).toLowerCase();
