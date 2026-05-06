@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="google-adsense-account" content="ca-pub-3173365001690642">
 <title>GUNDLE — Daily Firearm Guessing Game</title>
+
+<!-- SEO + sharing description.
+     Used by Google search results and as the default fallback for
+     platforms that don't render Open Graph. -->
+<meta name="description" content="A daily firearm guessing game. You have 6 shots to identify the mystery gun. New puzzle every day. Inspired by Wordle." />
+
+<!-- Open Graph tags — render the rich preview card when the URL
+     is pasted into iMessage, WhatsApp, Discord, Slack, Facebook, etc.
+     Update og:url to your actual deployed domain. -->
+<meta property="og:type"        content="website" />
+<meta property="og:url"         content="https://playgundle.com/" />
+<meta property="og:title"       content="GUNDLE — Daily Firearm Guessing Game" />
+<meta property="og:description" content="Six shots. One target. A new daily firearm puzzle." />
+<meta property="og:image"       content="https://playgundle.com/og-image.png" />
+<meta property="og:image:width"  content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:site_name"   content="Gundle" />
+
+<!-- Twitter / X card. Uses og:image automatically when present, but
+     having the explicit twitter tags improves rendering on X. -->
+<meta name="twitter:card"        content="summary_large_image" />
+<meta name="twitter:title"       content="GUNDLE — Daily Firearm Guessing Game" />
+<meta name="twitter:description" content="Six shots. One target. A new daily firearm puzzle." />
+<meta name="twitter:image"       content="https://playgundle.com/og-image.png" />
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Bitter:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
@@ -83,6 +108,7 @@
     border-bottom: 3px double var(--brass);
     padding: 18px 0 14px;
     margin-bottom: 28px;
+    position: relative;
   }
 
   .pretitle {
@@ -526,6 +552,53 @@
     line-height: 1.6;
   }
 
+  /* Stats strip — 4 quick numbers above the share grid. */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    max-width: 380px;
+    margin: 0 auto 18px;
+    padding: 14px 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--brass);
+  }
+
+  .stat-value {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  /* When the player just extended their streak, briefly highlight the
+     streak stat so they notice. */
+  .stat.streak-highlight .stat-value {
+    color: var(--brass-deep);
+    animation: streak-pulse 1.2s ease-out;
+  }
+
+  @keyframes streak-pulse {
+    0%   { transform: scale(1);   text-shadow: 0 0 0 transparent; }
+    30%  { transform: scale(1.18); text-shadow: 0 0 12px rgba(163,124,44,0.4); }
+    100% { transform: scale(1);   text-shadow: 0 0 0 transparent; }
+  }
+
+  @media (max-width: 480px) {
+    .stat-value { font-size: 22px; }
+  }
+
   /* SHARE GRID */
   .share-section {
     margin: 18px auto 22px;
@@ -672,6 +745,235 @@
     .legend { font-size: 10px; gap: 10px; }
   }
 
+  /* Header help button — small "?" in top-right corner of the header. */
+  .header-icon-btn {
+    position: absolute;
+    top: 24px;
+    right: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid var(--brass);
+    color: var(--brass-deep);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .header-icon-btn:hover {
+    background: var(--brass);
+    color: #fff8e0;
+    transform: translateY(-1px);
+  }
+
+  /* Tighter version of the .intro panel, used now that the modal carries
+     the full instructions. Just the legend remains as a glance reference. */
+  .intro-slim {
+    padding: 10px 18px;
+    margin-bottom: 18px;
+  }
+
+  .intro-slim .legend {
+    margin-top: 0;
+    justify-content: center;
+  }
+
+  /* HOW-TO-PLAY MODAL */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(40, 25, 12, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .modal-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-top: 4px solid var(--brass);
+    box-shadow: 0 20px 60px rgba(40, 25, 12, 0.35);
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px 30px 26px;
+    position: relative;
+    transform: translateY(16px) scale(0.97);
+    transition: transform 0.25s ease;
+  }
+
+  .modal-backdrop.open .modal-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 8px 12px;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--ink); }
+
+  .modal-pretitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--brass-deep);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .modal-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+
+  .modal-lead {
+    font-family: 'Bitter', serif;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+
+  .modal-section {
+    margin-bottom: 22px;
+  }
+
+  .modal-section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--brass-deep);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .modal-color-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 10px;
+    font-family: 'Bitter', serif;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+
+  .modal-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 3px;
+    border: 1px solid transparent;
+  }
+  .modal-chip.hit     { background: var(--hit-2);     color: var(--hit-text);     border-color: var(--hit); }
+  .modal-chip.partial { background: var(--partial-2); color: var(--partial-text); border-color: var(--partial); }
+  .modal-chip.miss    { background: var(--miss-2);    color: var(--miss-text);    border-color: var(--miss); }
+
+  .modal-explain { flex: 1; padding-top: 4px; }
+
+  .modal-arrow {
+    display: inline-block;
+    color: var(--brass-deep);
+    font-weight: 700;
+    margin: 0 2px;
+  }
+
+  .modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: 'Bitter', serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .modal-list li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .modal-list li::before {
+    content: '·';
+    position: absolute;
+    left: 6px;
+    top: -2px;
+    color: var(--brass);
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .modal-cta {
+    width: 100%;
+    background: linear-gradient(180deg, var(--brass) 0%, #8a6422 100%);
+    border: 1px solid #6b4a14;
+    color: #fff8e0;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    padding: 14px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    margin-top: 8px;
+  }
+
+  .modal-cta:hover {
+    background: linear-gradient(180deg, var(--brass-bright) 0%, var(--brass) 100%);
+  }
+
+  @media (max-width: 480px) {
+    .modal-card { padding: 24px 20px 20px; }
+    .modal-title { font-size: 22px; }
+    .modal-color-row { gap: 10px; }
+    .modal-chip { min-width: 80px; padding: 6px 10px; font-size: 11px; }
+    .header-icon-btn { width: 32px; height: 32px; font-size: 14px; top: 18px; }
+  }
+
   .toast {
     position: fixed;
     bottom: 30px;
@@ -724,6 +1026,7 @@
 
 <div class="wrap">
   <header>
+    <button id="helpBtn" class="header-icon-btn" aria-label="How to play" title="How to play">?</button>
     <div class="pretitle">A Daily Firearm Guessing Game</div>
     <h1>GUNDLE</h1>
     <div class="tagline">Six shots. One target.</div>
@@ -738,11 +1041,7 @@
   <!-- The actual game UI — hidden until data loads -->
   <div id="gameRoot" style="display:none">
 
-  <div class="intro">
-    Pick a <strong>manufacturer</strong>, then a <strong>model</strong>, and hit FIRE. You have <strong>6 tries</strong>. After each guess, every attribute is colored:
-    <span style="color:var(--hit);font-weight:600">green</span> = exact match,
-    <span style="color:var(--partial);font-weight:600">amber</span> = same family,
-    gray = wrong. Numbers show <strong>↑</strong> if the answer is higher, <strong>↓</strong> if lower.
+  <div class="intro intro-slim">
     <div class="legend">
       <div class="legend-item"><span class="swatch" style="background:var(--hit-2)"></span>EXACT</div>
       <div class="legend-item"><span class="swatch" style="background:var(--partial-2)"></span>CLOSE</div>
@@ -785,6 +1084,26 @@
     <div class="answer-name" id="answerName"></div>
     <div class="answer-flavor" id="answerFlavor"></div>
 
+    <!-- Stats strip — 4 quick numbers, populated by renderStats() -->
+    <div class="stats-strip" id="statsStrip">
+      <div class="stat">
+        <div class="stat-value" id="statPlayed">0</div>
+        <div class="stat-label">Played</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="statWinPct">0</div>
+        <div class="stat-label">Win %</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="statCurrent">0</div>
+        <div class="stat-label">Streak</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="statMax">0</div>
+        <div class="stat-label">Best</div>
+      </div>
+    </div>
+
     <div class="share-section">
       <div class="share-label">YOUR RESULT</div>
       <div class="share-grid" id="shareGrid"></div>
@@ -808,6 +1127,49 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- HOW-TO-PLAY MODAL — shown automatically on first visit and via the
+     "?" header button on every visit. Closes on backdrop tap, X, or Esc. -->
+<div class="modal-backdrop" id="howToModal" role="dialog" aria-modal="true" aria-labelledby="howToTitle" aria-hidden="true">
+  <div class="modal-card">
+    <button class="modal-close" id="howToClose" aria-label="Close">×</button>
+    <div class="modal-pretitle">HOW TO PLAY</div>
+    <h2 id="howToTitle" class="modal-title">Identify the mystery firearm</h2>
+    <p class="modal-lead">
+      You have <strong>6 guesses</strong> to identify today's hidden firearm. Pick a
+      <strong>manufacturer</strong>, then a <strong>model</strong>, and hit <strong>FIRE</strong>.
+      Every guess reveals how close you are — across <strong>seven attributes</strong>.
+    </p>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Color key</div>
+      <div class="modal-color-row">
+        <span class="modal-chip hit">PISTOL</span>
+        <span class="modal-explain"><strong>Exact match</strong> — the answer's value is identical.</span>
+      </div>
+      <div class="modal-color-row">
+        <span class="modal-chip partial">9x19mm</span>
+        <span class="modal-explain"><strong>Close family</strong> — wrong, but in the same group (e.g., another 9mm-class pistol cartridge).</span>
+      </div>
+      <div class="modal-color-row">
+        <span class="modal-chip miss">1985</span>
+        <span class="modal-explain"><strong>No match</strong> — and for numbers, an arrow shows direction: <span class="modal-arrow">↑</span> answer is higher, <span class="modal-arrow">↓</span> answer is lower.</span>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">A few rules</div>
+      <ul class="modal-list">
+        <li>One puzzle per day. Same gun for every player worldwide.</li>
+        <li>The puzzle resets at your local midnight.</li>
+        <li>Your progress is saved if you refresh — pick up where you left off.</li>
+        <li>Share your result with friends after you finish.</li>
+      </ul>
+    </div>
+
+    <button class="modal-cta" id="howToCta">GOT IT — LET ME PLAY</button>
+  </div>
+</div>
 
 <script>
   // =========================================================================
@@ -904,15 +1266,62 @@
     "Concealed": "civilian"
   };
 
+  // ---------------------------------------------------------------
+  // DEV FALLBACK
+  // A small hand-picked subset of the gun database, used ONLY when
+  // Supabase is unreachable (e.g., when previewing the page locally
+  // outside a browser, or in a sandboxed environment with no internet).
+  // In production on playgundle.com, this never gets used — Supabase
+  // returns the full live list. Safe to leave in place as a safety net.
+  // ---------------------------------------------------------------
+  const FALLBACK_GUNS = [
+    { manufacturer: "Kalashnikov", model: "AK-47", type: "Rifle", origin: "Soviet Union", caliber: "7.62x39mm", action: "Gas-operated", capacity: 30, year: 1949, role: "Military",
+      flavor: "The Avtomat Kalashnikova. Mikhail Kalashnikov's design — the most produced firearm in history, with over 100 million made." },
+    { manufacturer: "Colt", model: "M1911", type: "Pistol", origin: "USA", caliber: ".45 ACP", action: "Recoil-operated", capacity: 7, year: 1911, role: "Military",
+      flavor: "John Browning's masterpiece — standard US sidearm for over 70 years." },
+    { manufacturer: "Colt", model: "AR-15", type: "Rifle", origin: "USA", caliber: "5.56x45mm", action: "Gas-operated", capacity: 30, year: 1959, role: "Civilian",
+      flavor: "Eugene Stoner's lightweight rifle, the civilian semi-auto cousin of the military M16." },
+    { manufacturer: "Glock", model: "17", type: "Pistol", origin: "Austria", caliber: "9x19mm", action: "Striker-fired", capacity: 17, year: 1982, role: "Duty",
+      flavor: "Gaston Glock's polymer-framed pistol that revolutionized handgun design." },
+    { manufacturer: "Glock", model: "19", type: "Pistol", origin: "Austria", caliber: "9x19mm", action: "Striker-fired", capacity: 15, year: 1988, role: "Duty",
+      flavor: "The compact Glock — arguably the most popular handgun in the world." },
+    { manufacturer: "Beretta", model: "92FS", type: "Pistol", origin: "Italy", caliber: "9x19mm", action: "Recoil-operated", capacity: 15, year: 1975, role: "Duty",
+      flavor: "Adopted by the US military as the M9, replacing the 1911 in 1985." },
+    { manufacturer: "Heckler & Koch", model: "MP5", type: "Submachine Gun", origin: "Germany", caliber: "9x19mm", action: "Roller-delayed", capacity: 30, year: 1966, role: "Military",
+      flavor: "H&K's roller-delayed SMG — the gold standard for counter-terror units worldwide." },
+    { manufacturer: "Smith & Wesson", model: "Model 29", type: "Revolver", origin: "USA", caliber: ".44 Magnum", action: "Double-action", capacity: 6, year: 1955, role: "Civilian",
+      flavor: "Dirty Harry's revolver. 'The most powerful handgun in the world' — at the time." },
+    { manufacturer: "Remington", model: "Model 870", type: "Shotgun", origin: "USA", caliber: "12 gauge", action: "Pump-action", capacity: 5, year: 1950, role: "Civilian",
+      flavor: "The most popular pump shotgun ever made — over 11 million produced." },
+    { manufacturer: "Winchester", model: "Model 1894", type: "Rifle", origin: "USA", caliber: ".30-30", action: "Lever-action", capacity: 7, year: 1894, role: "Hunting",
+      flavor: "Designed by John Browning — the lever gun that won the West for a second time." },
+    { manufacturer: "Springfield Armory", model: "M1 Garand", type: "Rifle", origin: "USA", caliber: ".30-06", action: "Gas-operated", capacity: 8, year: 1936, role: "Military",
+      flavor: "Patton called it 'the greatest battle implement ever devised.' The iconic 'ping' of WWII." },
+    { manufacturer: "IWI", model: "Uzi", type: "Submachine Gun", origin: "Israel", caliber: "9x19mm", action: "Blowback", capacity: 32, year: 1950, role: "Military",
+      flavor: "Designed by Uziel Gal — compact telescoping bolt, guarded presidents and prime ministers." },
+  ];
+
   // Fetch the firearm database from Supabase.
   // Uses a tiny localStorage cache so repeat visits within the same
   // day don't refetch — the gun list rarely changes.
   async function loadData() {
     const loadingEl = document.getElementById('loadingState');
     try {
-      const guns = await fetchGunsFromSupabase();
-      if (!Array.isArray(guns) || guns.length === 0) {
-        throw new Error('Empty gun list returned from database');
+      let guns;
+      let usingFallback = false;
+
+      try {
+        guns = await fetchGunsFromSupabase();
+        if (!Array.isArray(guns) || guns.length === 0) {
+          throw new Error('Empty gun list returned from database');
+        }
+      } catch (networkErr) {
+        // Couldn't reach Supabase — most likely a sandboxed dev environment
+        // (Claude desktop, local file://, offline laptop). Fall back to
+        // the hand-picked sample list so the page is at least browsable.
+        console.warn('Supabase unreachable, using fallback gun list:', networkErr.message);
+        guns = FALLBACK_GUNS;
+        usingFallback = true;
       }
 
       GUNS = guns;
@@ -921,6 +1330,19 @@
       // Hide loading state, reveal the game
       if (loadingEl) loadingEl.style.display = 'none';
       document.getElementById('gameRoot').style.display = '';
+
+      // Show a small dev banner if we're on the fallback list
+      if (usingFallback) {
+        const banner = document.createElement('div');
+        banner.style.cssText =
+          'background:#fff3cd;color:#664d00;padding:8px 14px;text-align:center;' +
+          'font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:0.1em;' +
+          'border:1px solid #d4a94a;margin-bottom:18px;text-transform:uppercase;';
+        banner.textContent = 'DEV MODE — using ' + FALLBACK_GUNS.length +
+                             '-gun fallback list (Supabase unreachable)';
+        const root = document.getElementById('gameRoot');
+        root.insertBefore(banner, root.firstChild);
+      }
 
       // Lock in today's answer and check for a saved game.
       answer = pickAnswer();
@@ -1281,6 +1703,14 @@
     // the player can't restart the game until midnight.
     saveProgress(/*finished=*/true, won);
 
+    // Update streaks/stats — but ONLY for a freshly-completed game.
+    // When restoring on reload, stats were already updated when the
+    // player first finished, so we just read what's there.
+    if (!restoring) {
+      recordResult(won);
+    }
+    renderStats();
+
     // Show the "already played today" banner above the input area.
     showAlreadyPlayedBanner();
 
@@ -1380,6 +1810,14 @@
       const g = guesses[i];
       const row = SHARE_FIELDS.map(f => emojiMap[g[f].status] || '⬛').join('');
       lines.push(row);
+    }
+
+    // Add a streak brag for active streaks (≥ 2 days). Skip on streak of 1
+    // because "1-day streak" is silly to flex, and on losses where streak = 0.
+    const stats = loadStats();
+    if (stats.currentStreak >= 2) {
+      lines.push('');
+      lines.push(`🔥 ${stats.currentStreak}-day streak`);
     }
 
     lines.push('');
@@ -1656,9 +2094,149 @@
     }
   });
 
+  // ----------------------------------------------------------------------
+  // STATS / STREAKS
+  // We track per-browser stats in localStorage. The "current streak" is
+  // the count of consecutive winning days. It resets on a loss OR if the
+  // player skipped a day (i.e., last win was more than one day before today).
+  // ----------------------------------------------------------------------
+  const STATS_KEY = 'gundle:stats';
+
+  // Returns the current stats object (with sensible defaults if absent).
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        return Object.assign({
+          gamesPlayed: 0,
+          gamesWon: 0,
+          currentStreak: 0,
+          maxStreak: 0,
+          lastWinDate: null,    // YYYY-MM-DD of most recent win
+          lastPlayedDate: null, // YYYY-MM-DD of most recent finish (win or loss)
+        }, s);
+      }
+    } catch (e) {}
+    return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0, lastWinDate: null, lastPlayedDate: null };
+  }
+
+  function saveStats(s) {
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) {}
+  }
+
+  // Returns YYYY-MM-DD for the day before the given date key, in local time.
+  function dayBefore(dateKey) {
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() - 1);
+    return getDateKey(dt);
+  }
+
+  // Whether streak-was-extended this turn — drives the brief highlight pulse.
+  let streakJustExtended = false;
+
+  function recordResult(won) {
+    const today = getDateKey();
+    const stats = loadStats();
+
+    // Defensive: if we already recorded a result for today, do nothing.
+    // (Shouldn't happen since endGame only calls us when !restoring,
+    // but a belt-and-suspenders check is cheap.)
+    if (stats.lastPlayedDate === today) return;
+
+    stats.gamesPlayed += 1;
+    stats.lastPlayedDate = today;
+
+    if (won) {
+      stats.gamesWon += 1;
+      // Did we win yesterday too? Then extend; otherwise restart at 1.
+      const wonYesterday = stats.lastWinDate === dayBefore(today);
+      const previousStreak = stats.currentStreak;
+      stats.currentStreak = wonYesterday ? stats.currentStreak + 1 : 1;
+      stats.lastWinDate = today;
+      if (stats.currentStreak > stats.maxStreak) {
+        stats.maxStreak = stats.currentStreak;
+      }
+      streakJustExtended = stats.currentStreak > previousStreak;
+    } else {
+      stats.currentStreak = 0;
+      streakJustExtended = false;
+    }
+
+    saveStats(stats);
+  }
+
+  function renderStats() {
+    const stats = loadStats();
+
+    document.getElementById('statPlayed').textContent  = stats.gamesPlayed;
+    document.getElementById('statWinPct').textContent  =
+      stats.gamesPlayed === 0 ? '—'
+      : Math.round((stats.gamesWon / stats.gamesPlayed) * 100);
+    document.getElementById('statCurrent').textContent = stats.currentStreak;
+    document.getElementById('statMax').textContent     = stats.maxStreak;
+
+    if (streakJustExtended) {
+      const cell = document.getElementById('statCurrent').parentNode;
+      cell.classList.add('streak-highlight');
+      setTimeout(() => cell.classList.remove('streak-highlight'), 1500);
+      streakJustExtended = false;
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // HOW-TO-PLAY MODAL
+  // Shows automatically on first visit (tracked via localStorage), and
+  // can be reopened anytime via the "?" button in the header.
+  // ----------------------------------------------------------------------
+  const FIRST_VISIT_KEY = 'gundle:visited-v1';
+
+  function openHowToModal() {
+    const m = document.getElementById('howToModal');
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    // Prevent background scroll on iOS while modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeHowToModal() {
+    const m = document.getElementById('howToModal');
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) {}
+  }
+
+  function maybeShowFirstTimeModal() {
+    let seen = false;
+    try { seen = !!localStorage.getItem(FIRST_VISIT_KEY); } catch (e) {}
+    if (!seen) {
+      // Show after a tiny delay so the page has a moment to paint first
+      setTimeout(openHowToModal, 350);
+    }
+  }
+
+  // Wire up modal open/close triggers
+  document.getElementById('helpBtn').addEventListener('click', openHowToModal);
+  document.getElementById('howToClose').addEventListener('click', closeHowToModal);
+  document.getElementById('howToCta').addEventListener('click', closeHowToModal);
+  // Click backdrop (but not the card itself) to close
+  document.getElementById('howToModal').addEventListener('click', (e) => {
+    if (e.target.id === 'howToModal') closeHowToModal();
+  });
+  // Esc to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' &&
+        document.getElementById('howToModal').classList.contains('open')) {
+      closeHowToModal();
+    }
+  });
+
   // Kick off data load. Game gets initialized inside loadData() once
   // guns.json is parsed.
   loadData();
+  maybeShowFirstTimeModal();
 </script>
 
 </body>
