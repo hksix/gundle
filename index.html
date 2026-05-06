@@ -1874,15 +1874,53 @@
     }
   });
 
-  // SMS button — opens the device's messaging app pre-filled
-  document.getElementById('smsBtn').addEventListener('click', () => {
-    const won = endgame.classList.contains('win');
-    const text = buildShareText(won);
-    // sms: URI works on iOS and Android; the "?body=" param is widely supported.
-    // iOS prefers "&body=" after a recipient, but with no recipient "?body=" works.
-    const sms = 'sms:?&body=' + encodeURIComponent(text);
-    window.location.href = sms;
-  });
+  // Secondary share button. Two modes:
+  //   - If the browser supports navigator.share (most mobile browsers,
+  //     and Chrome on desktop), this is the "SHARE" button that opens
+  //     the OS share sheet — far higher conversion than copy/paste.
+  //   - Otherwise, fall back to "TEXT IT" which opens the device's
+  //     SMS app (works on every phone).
+  // The button's label is set once on page load based on capability.
+  const shareBtn = document.getElementById('smsBtn');
+  const NATIVE_SHARE_SUPPORTED = (typeof navigator !== 'undefined' &&
+                                  typeof navigator.share === 'function');
+
+  if (NATIVE_SHARE_SUPPORTED) {
+    shareBtn.textContent = '📤 SHARE';
+    shareBtn.addEventListener('click', async () => {
+      const won = endgame.classList.contains('win');
+      const text = buildShareText(won);
+      try {
+        await navigator.share({
+          title: 'Gundle',
+          text: text,
+          // We deliberately don't pass `url` here. The share text already
+          // ends with "Play at: <url>", and passing url separately causes
+          // some apps (notably WhatsApp) to append it twice or strip the
+          // emoji grid in favor of just the URL.
+        });
+      } catch (err) {
+        // AbortError = user dismissed the share sheet. Don't show an
+        // error for that — it's normal. Anything else, fall back to
+        // copying so the user still gets something useful.
+        if (err && err.name !== 'AbortError') {
+          console.warn('Native share failed, falling back to clipboard:', err);
+          const ok = await copyToClipboard(text);
+          if (ok) showToast('Result copied — paste anywhere');
+        }
+      }
+    });
+  } else {
+    // Legacy SMS-only fallback. Original behavior preserved verbatim.
+    shareBtn.addEventListener('click', () => {
+      const won = endgame.classList.contains('win');
+      const text = buildShareText(won);
+      // sms: URI works on iOS and Android; the "?body=" param is widely supported.
+      // iOS prefers "&body=" after a recipient, but with no recipient "?body=" works.
+      const sms = 'sms:?&body=' + encodeURIComponent(text);
+      window.location.href = sms;
+    });
+  }
 
   const brandBtn  = document.getElementById('brandBtn');
   const brandList = document.getElementById('brandList');
