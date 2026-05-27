@@ -724,6 +724,29 @@
     text-transform: uppercase;
   }
 
+  /* Contact line — same family/case as the rest of the footer, but
+     lower-cased and with a touch of brass on the link to draw the eye. */
+  .footer-contact {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: none;
+    color: var(--ink-faint);
+  }
+
+  .footer-contact a {
+    color: var(--brass-deep);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .footer-contact a:hover {
+    color: var(--brass);
+    border-bottom-color: var(--brass);
+  }
+
   @media (max-width: 640px) {
     body { padding: 16px 8px 60px; }
     h1 { font-size: 52px; }
@@ -1111,7 +1134,11 @@
   </div><!-- /#gameRoot -->
 
   <footer>
-    A daily puzzle for firearm enthusiasts
+    <div>A daily puzzle for firearm enthusiasts</div>
+    <div class="footer-contact">
+      Questions or feedback?
+      <a href="mailto:info@playgundle.com?subject=Gundle%20feedback">info@playgundle.com</a>
+    </div>
   </footer>
 </div>
 
